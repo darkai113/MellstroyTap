@@ -1,0 +1,2287 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>MELLSTROY TAP — RCS</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; user-select: none; -webkit-tap-highlight-color: transparent; }
+html, body {
+  width: 100%; height: 100%;
+  overflow: hidden;
+  background: #0D0D0D;
+  font-family: 'Arial Black', sans-serif;
+  color: #fff;
+  touch-action: manipulation;
+}
+#game {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: radial-gradient(circle at center, #1a0a10 0%, #0D0D0D 70%);
+  transition: background 0.5s;
+}
+#game.boss-generall, #game.army-mode {
+  background: radial-gradient(circle at center, #0a3a0a 0%, #001a00 70%);
+}
+#game.boss-generall { animation: bossGreenPulse 1.5s infinite alternate; }
+@keyframes bossGreenPulse {
+  from { background: radial-gradient(circle at center, #0a3a0a 0%, #001a00 70%); }
+  to { background: radial-gradient(circle at center, #155a15 0%, #002a00 70%); }
+}
+#game.boss-moydidir {
+  background: radial-gradient(circle at center, #0a2a4a 0%, #001a2a 70%);
+  animation: bossBluePulse 1.5s infinite alternate;
+}
+@keyframes bossBluePulse {
+  from { background: radial-gradient(circle at center, #0a2a4a 0%, #001a2a 70%); }
+  to { background: radial-gradient(circle at center, #0a4a7a 0%, #002a4a 70%); }
+}
+#game.boss-sverx, #game.sky-mode {
+  background: radial-gradient(circle at center, #4a6a9a 0%, #1a2a4a 70%);
+}
+#game.boss-sverx { animation: bossSkyPulse 1.5s infinite alternate; }
+@keyframes bossSkyPulse {
+  from { background: radial-gradient(circle at center, #4a6a9a 0%, #1a2a4a 70%); }
+  to { background: radial-gradient(circle at center, #6a8aba 0%, #2a3a5a 70%); }
+}
+
+/* === ОБЛАКА === */
+.clouds-container {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 5;
+  display: none;
+  overflow: hidden;
+}
+.clouds-container.show { display: block; }
+.cloud {
+  position: absolute;
+  background: radial-gradient(circle at 30% 30%, rgba(255,255,255,0.95), rgba(200,220,240,0.5));
+  border-radius: 50%;
+  box-shadow: 0 0 20px rgba(255,255,255,0.5), inset 0 0 15px rgba(255,255,255,0.7);
+  animation: cloudFloat linear infinite;
+}
+@keyframes cloudFloat {
+  0% { transform: translateY(0) scale(0.5); opacity: 0; }
+  10% { opacity: 1; }
+  90% { opacity: 1; }
+  100% { transform: translateY(-110vh) scale(1.3); opacity: 0; }
+}
+
+/* === ПУЗЫРЬКИ === */
+.bubbles-container {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 5;
+  display: none;
+  overflow: hidden;
+}
+.bubbles-container.show { display: block; }
+.bubble {
+  position: absolute;
+  border-radius: 50%;
+  background: radial-gradient(circle at 30% 30%, rgba(150,220,255,0.9), rgba(50,150,220,0.4));
+  box-shadow: 0 0 15px rgba(100,200,255,0.6), inset 0 0 10px rgba(255,255,255,0.5);
+  animation: bubbleFloat linear infinite;
+}
+@keyframes bubbleFloat {
+  0% { transform: translateY(0) scale(0.5); opacity: 0; }
+  10% { opacity: 1; }
+  90% { opacity: 1; }
+  100% { transform: translateY(-110vh) scale(1.1); opacity: 0; }
+}
+.top-bar {
+  position: absolute;
+  top: 20px;
+  left: 0; right: 0;
+  display: flex;
+  justify-content: center;
+  z-index: 20;
+}
+.stat {
+  background: rgba(26,26,26,0.9);
+  border: 3px solid #FFD700;
+  padding: 12px 30px;
+  font-size: 24px;
+  letter-spacing: 2px;
+  color: #FFD700;
+  box-shadow: 0 0 20px rgba(255,215,0,0.5);
+  transition: all 0.5s;
+}
+#game.boss-generall .stat, #game.army-mode .stat {
+  border-color: #00ff44;
+  color: #00ff44;
+  box-shadow: 0 0 20px rgba(0,255,68,0.7);
+}
+#game.boss-moydidir .stat {
+  border-color: #00ccff;
+  color: #00ccff;
+  box-shadow: 0 0 20px rgba(0,204,255,0.7);
+}
+#game.boss-sverx .stat, #game.sky-mode .stat {
+  border-color: #ffffff;
+  color: #ffffff;
+  box-shadow: 0 0 20px rgba(255,255,255,0.7);
+}
+.boss-bar {
+  position: absolute;
+  top: 80px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 80%;
+  max-width: 500px;
+  display: none;
+  z-index: 25;
+  text-align: center;
+}
+.boss-bar.show { display: block; }
+.boss-title {
+  font-size: 18px;
+  color: #FF4444;
+  letter-spacing: 4px;
+  margin-bottom: 8px;
+  text-shadow: 0 0 20px #FF0000;
+  animation: bossTextPulse 0.5s infinite alternate;
+}
+@keyframes bossTextPulse {
+  from { transform: scale(1); }
+  to { transform: scale(1.1); }
+}
+.boss-hp-bar {
+  height: 25px;
+  background: #1a1a1a;
+  border: 3px solid #FF0000;
+  overflow: hidden;
+  box-shadow: 0 0 20px rgba(255,0,0,0.7);
+  transition: all 0.5s;
+}
+.boss-hp-fill {
+  height: 100%;
+  width: 100%;
+  background: linear-gradient(90deg, #FF0000, #FF4444);
+  transition: width 0.1s;
+  box-shadow: 0 0 15px #FF0000;
+}
+.boss-hp-text {
+  font-size: 14px;
+  color: #FF4444;
+  margin-top: 5px;
+  letter-spacing: 2px;
+  font-family: Arial, sans-serif;
+}
+.boss-progress {
+  position: absolute;
+  bottom: 130px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 60%;
+  max-width: 400px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  z-index: 15;
+  opacity: 0.7;
+}
+.boss-progress-text {
+  font-size: 11px;
+  color: #888;
+  letter-spacing: 2px;
+  margin-bottom: 5px;
+  font-family: Arial, sans-serif;
+}
+.boss-progress-bar {
+  width: 100%;
+  height: 6px;
+  background: #1a1a1a;
+  border-radius: 3px;
+  overflow: hidden;
+}
+.boss-progress-fill {
+  height: 100%;
+  width: 0%;
+  background: linear-gradient(90deg, #E01E2B, #FF4444);
+  transition: width 0.3s;
+}
+.head-wrapper {
+  position: relative;
+  width: 500px;
+  height: 500px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.rage-circle {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 5;
+}
+.rage-circle-bg { fill: none; stroke: rgba(224,30,43,0.2); stroke-width: 10; }
+.rage-circle-fill {
+  fill: none;
+  stroke: #E01E2B;
+  stroke-width: 10;
+  stroke-linecap: round;
+  stroke-dasharray: 0 9999;
+  transition: stroke-dasharray 0.3s;
+  filter: drop-shadow(0 0 10px #E01E2B);
+}
+.rage-circle-fill.active { stroke: #FFD700; filter: drop-shadow(0 0 20px #FFD700); }
+.head-container {
+  position: relative;
+  cursor: pointer;
+  transition: transform 0.05s;
+  z-index: 10;
+  filter: drop-shadow(0 0 40px rgba(224,30,43,0.8));
+}
+.head-container:active { transform: scale(0.95); }
+.head-container.hit { animation: headHit 0.15s; }
+@keyframes headHit {
+  0% { transform: scale(1) rotate(0deg); }
+  30% { transform: scale(1.15) rotate(-8deg); }
+  60% { transform: scale(0.95) rotate(8deg); }
+  100% { transform: scale(1) rotate(0deg); }
+}
+.head-container.rage { animation: rageFloat 1s infinite alternate; filter: drop-shadow(0 0 60px #FFD700); }
+@keyframes rageFloat { from { transform: scale(1); } to { transform: scale(1.05); } }
+.head-container.boss-generall { animation: bossFloat 0.5s infinite alternate; filter: drop-shadow(0 0 80px #00ff44); }
+.head-container.boss-moydidir { animation: bossFloat 0.5s infinite alternate; filter: drop-shadow(0 0 80px #00ccff); }
+.head-container.boss-sverx { animation: bossFloat 0.5s infinite alternate; filter: drop-shadow(0 0 80px #ffffff); }
+@keyframes bossFloat {
+  from { transform: scale(1) rotate(-2deg); }
+  to { transform: scale(1.08) rotate(2deg); }
+}
+.head-img { width: 400px; height: 400px; object-fit: contain; pointer-events: none; display: block; }
+.combo {
+  position: absolute;
+  top: 25%; left: 50%;
+  transform: translateX(-50%);
+  font-size: 72px;
+  color: #FFD700;
+  text-shadow: 0 0 30px #FFD700, 4px 4px 0 #000;
+  opacity: 0;
+  transition: opacity 0.3s;
+  z-index: 30;
+  pointer-events: none;
+  letter-spacing: 4px;
+}
+.combo.show { opacity: 1; animation: comboPop 0.3s; }
+@keyframes comboPop {
+  0% { transform: translateX(-50%) scale(0.5); }
+  50% { transform: translateX(-50%) scale(1.3); }
+  100% { transform: translateX(-50%) scale(1); }
+}
+.rage-text {
+  position: absolute;
+  top: 15%; left: 50%;
+  transform: translateX(-50%);
+  font-size: 60px;
+  color: #FFD700;
+  text-shadow: 0 0 40px #FFD700, 0 0 80px #E01E2B;
+  opacity: 0;
+  transition: opacity 0.3s;
+  z-index: 30;
+  pointer-events: none;
+  letter-spacing: 8px;
+  animation: ragePulse 0.5s infinite alternate;
+}
+.rage-text.show { opacity: 1; }
+@keyframes ragePulse {
+  from { transform: translateX(-50%) scale(1); }
+  to { transform: translateX(-50%) scale(1.1); }
+}
+.boss-text {
+  position: absolute;
+  top: 22%; left: 50%;
+  transform: translateX(-50%);
+  font-size: 50px;
+  color: #FF0000;
+  text-shadow: 0 0 40px #FF0000, 0 0 80px #FF4444;
+  opacity: 0;
+  transition: opacity 0.3s;
+  z-index: 30;
+  pointer-events: none;
+  letter-spacing: 6px;
+  animation: bossTextAnim 0.4s infinite alternate;
+}
+.boss-text.show { opacity: 1; }
+@keyframes bossTextAnim {
+  from { transform: translateX(-50%) scale(1); }
+  to { transform: translateX(-50%) scale(1.15); }
+}
+.achievement {
+  position: absolute;
+  right: -500px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: linear-gradient(135deg, #1a1a1a, #2a0a10);
+  border: 3px solid #FFD700;
+  border-radius: 15px;
+  padding: 20px;
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  box-shadow: 0 0 40px rgba(255,215,0,0.6);
+  z-index: 150;
+  transition: right 0.5s ease-out;
+  min-width: 380px;
+}
+.achievement.show { right: 30px; }
+.achievement img {
+  width: 80px; height: 80px;
+  object-fit: contain;
+  border-radius: 10px;
+  border: 2px solid #E01E2B;
+}
+.achievement .text { flex: 1; font-family: Arial, sans-serif; }
+.achievement .title {
+  font-size: 14px;
+  color: #FFD700;
+  font-weight: 900;
+  letter-spacing: 2px;
+  margin-bottom: 5px;
+}
+.achievement .name { font-size: 18px; color: #fff; font-weight: 900; margin-bottom: 5px; }
+.achievement .reward { font-size: 14px; color: #4CAF50; font-weight: 900; }
+.donate-popup {
+  position: absolute;
+  font-size: 42px;
+  font-weight: 900;
+  color: #FFD700;
+  pointer-events: none;
+  animation: floatUp 0.8s ease-out forwards;
+  text-shadow: 0 0 20px currentColor, 3px 3px 0 #000;
+  z-index: 100;
+}
+@keyframes floatUp {
+  0% { opacity: 1; transform: translateY(0) scale(1); }
+  100% { opacity: 0; transform: translateY(-200px) scale(1.5); }
+}
+.bottom-controls {
+  position: absolute;
+  bottom: 30px;
+  left: 0; right: 0;
+  display: flex;
+  justify-content: space-around;
+  padding: 0 30px;
+  z-index: 20;
+  gap: 15px;
+}
+.ctrl-btn {
+  flex: 1;
+  max-width: 250px;
+  padding: 20px;
+  background: #1A1A1A;
+  border: 3px solid #E01E2B;
+  color: #E01E2B;
+  font-size: 18px;
+  font-weight: 900;
+  letter-spacing: 2px;
+  cursor: pointer;
+  font-family: inherit;
+  transition: all 0.2s;
+}
+.ctrl-btn:hover { background: #E01E2B; color: #fff; }
+#game.boss-generall .ctrl-btn, #game.army-mode .ctrl-btn { border-color: #00ff44; color: #00ff44; }
+#game.boss-generall .ctrl-btn:hover, #game.army-mode .ctrl-btn:hover { background: #00ff44; color: #000; }
+#game.boss-moydidir .ctrl-btn { border-color: #00ccff; color: #00ccff; }
+#game.boss-moydidir .ctrl-btn:hover { background: #00ccff; color: #000; }
+#game.boss-sverx .ctrl-btn, #game.sky-mode .ctrl-btn { border-color: #ffffff; color: #ffffff; }
+#game.boss-sverx .ctrl-btn:hover, #game.sky-mode .ctrl-btn:hover { background: #ffffff; color: #000; }
+.screen {
+  position: absolute;
+  inset: 0;
+  display: none;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(180deg, #0a0a1a, #0D0D0D);
+  z-index: 300;
+  padding: 30px;
+}
+.screen.active { display: flex; }
+.menu-logo {
+  width: 180px; height: 180px;
+  object-fit: contain;
+  margin-bottom: 15px;
+  filter: drop-shadow(0 0 40px rgba(224,30,43,0.9));
+  animation: menuLogoPulse 2s infinite alternate;
+}
+@keyframes menuLogoPulse {
+  from { transform: scale(1); filter: drop-shadow(0 0 40px rgba(224,30,43,0.9)); }
+  to { transform: scale(1.05); filter: drop-shadow(0 0 60px rgba(224,30,43,1)); }
+}
+.menu-title-1 {
+  font-size: 55px;
+  color: #E01E2B;
+  letter-spacing: 8px;
+  text-shadow: 0 0 40px #E01E2B, 3px 3px 0 #000;
+  line-height: 1;
+}
+.menu-title-2 {
+  font-size: 66px;
+  color: #fff;
+  letter-spacing: 12px;
+  text-shadow: 0 0 40px #E01E2B, 4px 4px 0 #E01E2B;
+  line-height: 1;
+  margin-bottom: 12px;
+}
+.menu-divider { display: flex; align-items: center; gap: 15px; margin-bottom: 12px; }
+.menu-divider .line {
+  width: 70px; height: 2px;
+  background: linear-gradient(90deg, transparent, #E01E2B, transparent);
+}
+.menu-divider .sword { color: #E01E2B; font-size: 22px; filter: drop-shadow(0 0 10px #E01E2B); }
+.menu-subtitle {
+  font-size: 13px;
+  color: #888;
+  letter-spacing: 8px;
+  margin-bottom: 20px;
+  text-shadow: 0 0 10px rgba(224,30,43,0.5);
+}
+.menu-content {
+  display: flex;
+  gap: 20px;
+  align-items: flex-start;
+  justify-content: center;
+  width: 100%;
+  max-width: 900px;
+}
+.menu-column { display: flex; flex-direction: column; align-items: center; flex: 1; }
+.menu-buttons { width: 100%; max-width: 420px; }
+.menu-btn {
+  width: 100%;
+  padding: 16px;
+  margin: 4px 0;
+  background: rgba(26,26,26,0.8);
+  border: 3px solid #E01E2B;
+  color: #fff;
+  font-size: 17px;
+  font-weight: 900;
+  letter-spacing: 3px;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-family: inherit;
+}
+.menu-btn:hover {
+  background: #E01E2B;
+  color: #000;
+  transform: translateX(10px);
+  box-shadow: -10px 0 30px rgba(224,30,43,0.7);
+}
+.event-banner {
+  width: 260px;
+  background: linear-gradient(135deg, #1a0a10, #2a0a10);
+  border: 3px solid #E01E2B;
+  border-radius: 15px;
+  padding: 15px;
+  text-align: center;
+  box-shadow: 0 0 30px rgba(224,30,43,0.6);
+  animation: bannerGlow 2s infinite alternate;
+  cursor: pointer;
+  transition: transform 0.2s;
+}
+.event-banner:hover { transform: scale(1.02); }
+@keyframes bannerGlow {
+  from { box-shadow: 0 0 30px rgba(224,30,43,0.6); }
+  to { box-shadow: 0 0 50px rgba(224,30,43,1), 0 0 80px rgba(224,30,43,0.5); }
+}
+.event-title {
+  font-size: 16px;
+  color: #FFD700;
+  letter-spacing: 2px;
+  margin-bottom: 10px;
+  text-shadow: 0 0 15px #FFD700;
+  animation: eventPulse 1s infinite alternate;
+}
+@keyframes eventPulse { from { transform: scale(1); } to { transform: scale(1.05); } }
+.event-banner img {
+  width: 100%;
+  max-width: 230px;
+  height: auto;
+  border-radius: 10px;
+  border: 2px solid #E01E2B;
+  margin-bottom: 10px;
+  display: block;
+}
+.event-desc {
+  font-size: 13px;
+  color: #fff;
+  font-family: Arial, sans-serif;
+  font-weight: 900;
+  letter-spacing: 1px;
+  line-height: 1.3;
+  text-shadow: 0 0 10px rgba(224,30,43,0.8);
+}
+.title {
+  font-size: 48px;
+  color: #E01E2B;
+  letter-spacing: 6px;
+  margin-bottom: 8px;
+  text-shadow: 0 0 30px #E01E2B;
+}
+.shop-list {
+  width: 100%;
+  max-width: 600px;
+  max-height: 60vh;
+  overflow-y: auto;
+  margin-top: 20px;
+}
+.shop-item {
+  background: rgba(26,26,26,0.9);
+  border: 3px solid #333;
+  padding: 18px;
+  margin: 10px 0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-family: Arial, sans-serif;
+}
+.shop-item:hover { border-color: #E01E2B; }
+.shop-item .info { flex: 1; }
+.shop-item .name { font-weight: 900; font-size: 18px; letter-spacing: 2px; }
+.shop-item .desc { font-size: 13px; color: #888; margin-top: 5px; }
+.shop-item .price { color: #FFD700; font-weight: 900; font-size: 16px; margin-top: 6px; }
+.shop-item button {
+  background: #E01E2B;
+  color: #fff;
+  border: none;
+  padding: 12px 22px;
+  font-weight: 900;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 14px;
+  letter-spacing: 2px;
+}
+.shop-item button:disabled { background: #333; color: #666; cursor: not-allowed; }
+.collection-tabs {
+  display: flex;
+  gap: 4px;
+  margin-top: 12px;
+  width: 100%;
+  max-width: 700px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+.collection-tab {
+  flex: 1;
+  min-width: 60px;
+  padding: 10px 5px;
+  background: rgba(26,26,26,0.8);
+  border: 3px solid #333;
+  color: #888;
+  font-size: 11px;
+  font-weight: 900;
+  letter-spacing: 1px;
+  cursor: pointer;
+  font-family: inherit;
+  transition: all 0.2s;
+}
+.collection-tab.active {
+  border-color: #E01E2B;
+  color: #fff;
+  background: rgba(224,30,43,0.2);
+  box-shadow: 0 0 15px rgba(224,30,43,0.5);
+}
+.collection-tab:hover { border-color: #E01E2B; }
+.skins-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 15px;
+  width: 100%;
+  max-width: 600px;
+  max-height: 55vh;
+  overflow-y: auto;
+  margin-top: 15px;
+}
+.skin-card {
+  background: rgba(26,26,26,0.9);
+  border: 3px solid #333;
+  padding: 15px;
+  text-align: center;
+  transition: all 0.2s;
+  font-family: Arial, sans-serif;
+  position: relative;
+}
+.skin-card.selected { border-color: #FFD700; box-shadow: 0 0 20px rgba(255,215,0,0.5); }
+.skin-card.locked { opacity: 0.5; }
+.skin-card.owned { border-color: #4CAF50; }
+.skin-card.owned.selected { border-color: #FFD700; }
+.skin-card img { width: 100px; height: 100px; object-fit: contain; margin-bottom: 10px; }
+.skin-card.locked img { filter: grayscale(1) brightness(0.5); }
+.skin-card .skin-name { font-weight: 900; font-size: 14px; letter-spacing: 1px; }
+.skin-card .skin-boost { color: #4CAF50; font-size: 12px; margin-top: 3px; font-weight: 900; }
+.skin-card .skin-status { font-size: 11px; margin-top: 5px; color: #4CAF50; }
+.skin-card.locked .skin-status { color: #666; }
+.skin-card .skin-action {
+  display: block;
+  width: 100%;
+  margin-top: 8px;
+  padding: 8px;
+  background: #E01E2B;
+  color: #fff;
+  border: none;
+  font-weight: 900;
+  font-size: 12px;
+  letter-spacing: 1px;
+  cursor: pointer;
+  font-family: inherit;
+}
+.roulettes-list {
+  width: 100%;
+  max-width: 600px;
+  max-height: 65vh;
+  overflow-y: auto;
+  margin-top: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.roulette-card {
+  background: rgba(26,26,26,0.9);
+  border: 3px solid #333;
+  border-radius: 15px;
+  padding: 12px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-family: Arial, sans-serif;
+  transition: all 0.2s;
+}
+.roulette-card:hover { border-color: #E01E2B; }
+.roulette-card img { width: 80px; height: 80px; object-fit: contain; border-radius: 10px; flex-shrink: 0; }
+.roulette-card .r-info { flex: 1; }
+.roulette-card .r-name { font-weight: 900; font-size: 16px; letter-spacing: 2px; color: #fff; margin-bottom: 4px; }
+.roulette-card .r-desc { font-size: 11px; color: #888; margin-bottom: 4px; }
+.roulette-card .r-price { color: #FFD700; font-weight: 900; font-size: 15px; }
+.roulette-card .r-comp { font-size: 10px; color: #4CAF50; margin-top: 3px; }
+.roulette-card button {
+  background: #E01E2B;
+  color: #fff;
+  border: none;
+  padding: 12px 16px;
+  font-weight: 900;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 13px;
+  letter-spacing: 1px;
+  border-radius: 10px;
+  transition: all 0.2s;
+}
+.roulette-card button:hover:not(:disabled) { background: #ff3344; transform: scale(1.05); }
+.roulette-card button:disabled { background: #333; color: #666; cursor: not-allowed; }
+.roulette-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.97);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  z-index: 1000;
+  padding: 20px;
+  overflow: hidden;
+}
+.roulette-overlay.show { display: flex; }
+.roulette-stage {
+  position: relative;
+  width: 90vw;
+  max-width: 420px;
+  height: 90vw;
+  max-height: 420px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.roulette-pointer {
+  position: absolute;
+  top: -15px; left: 50%;
+  transform: translateX(-50%);
+  width: 0; height: 0;
+  border-left: 22px solid transparent;
+  border-right: 22px solid transparent;
+  border-top: 38px solid #E01E2B;
+  filter: drop-shadow(0 0 15px #E01E2B);
+  z-index: 20;
+  animation: pointerPulse 0.5s infinite alternate;
+}
+@keyframes pointerPulse {
+  from { transform: translateX(-50%) scale(1); }
+  to { transform: translateX(-50%) scale(1.15); }
+}
+.roulette-skins-ring {
+  position: absolute;
+  inset: -50px;
+  border-radius: 50%;
+  animation: ringRotate 2s linear infinite;
+  z-index: 3;
+  pointer-events: none;
+}
+@keyframes ringRotate { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+.roulette-skin-orbit {
+  position: absolute;
+  width: 70px; height: 70px;
+  top: 50%; left: 50%;
+  margin: -35px 0 0 -35px;
+  border-radius: 50%;
+  background: rgba(26,26,26,0.9);
+  border: 3px solid #E01E2B;
+  box-shadow: 0 0 20px rgba(224,30,43,0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+.roulette-skin-orbit img { width: 100%; height: 100%; object-fit: contain; }
+.roulette-wheel {
+  width: 70%; height: 70%;
+  border-radius: 50%;
+  background: conic-gradient(
+    #E01E2B 0deg 30deg, #1a1a1a 30deg 60deg,
+    #E01E2B 60deg 90deg, #1a1a1a 90deg 120deg,
+    #E01E2B 120deg 150deg, #1a1a1a 150deg 180deg,
+    #E01E2B 180deg 210deg, #1a1a1a 210deg 240deg,
+    #E01E2B 240deg 270deg, #1a1a1a 270deg 300deg,
+    #E01E2B 300deg 330deg, #1a1a1a 330deg 360deg
+  );
+  border: 6px solid #FFD700;
+  box-shadow: 0 0 60px rgba(224,30,43,0.8), 0 0 120px rgba(224,30,43,0.4), inset 0 0 40px rgba(0,0,0,0.7);
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 5;
+}
+.roulette-wheel.spinning { animation: spinWheel 7s cubic-bezier(0.15, 0.85, 0.25, 1) forwards; }
+@keyframes spinWheel {
+  0% { transform: rotate(0deg) scale(1); }
+  90% { transform: rotate(1800deg) scale(1.05); }
+  100% { transform: rotate(2160deg) scale(1); }
+}
+.roulette-wheel::before {
+  content: '';
+  position: absolute;
+  inset: 12px;
+  border-radius: 50%;
+  border: 3px dashed rgba(255,215,0,0.4);
+  pointer-events: none;
+}
+.roulette-wheel-center {
+  width: 70px; height: 70px;
+  background: radial-gradient(circle, #FFD700, #B8860B);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 36px;
+  border: 4px solid #fff;
+  box-shadow: 0 0 30px rgba(255,215,0,0.9);
+  z-index: 5;
+  animation: centerPulse 0.5s infinite alternate;
+}
+@keyframes centerPulse { from { transform: scale(1); } to { transform: scale(1.08); } }
+.roulette-result {
+  margin-top: 25px;
+  text-align: center;
+  display: none;
+  z-index: 50;
+}
+.roulette-result.show { display: block; animation: resultFadeIn 0.5s; }
+@keyframes resultFadeIn {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.roulette-result img {
+  width: 140px; height: 140px;
+  object-fit: contain;
+  border-radius: 20px;
+  border: 4px solid #FFD700;
+  background: rgba(26,26,26,0.9);
+  padding: 10px;
+  animation: resultPop 0.6s cubic-bezier(0.2, 1.5, 0.5, 1), glowPulse 1.5s infinite alternate;
+}
+@keyframes resultPop {
+  0% { transform: scale(0.2) rotate(-20deg); }
+  60% { transform: scale(1.15) rotate(5deg); }
+  100% { transform: scale(1) rotate(0deg); }
+}
+@keyframes glowPulse {
+  from { box-shadow: 0 0 40px rgba(255,215,0,0.7), 0 0 80px rgba(255,215,0,0.4); }
+  to { box-shadow: 0 0 80px rgba(255,215,0,1), 0 0 160px rgba(255,215,0,0.6); }
+}
+.roulette-result .r-name {
+  font-size: 26px;
+  color: #FFD700;
+  margin-top: 15px;
+  letter-spacing: 3px;
+  text-shadow: 0 0 25px #FFD700;
+  font-family: Arial, sans-serif;
+  font-weight: 900;
+}
+.roulette-result .r-status { font-size: 16px; margin-top: 8px; font-family: Arial, sans-serif; font-weight: 900; letter-spacing: 2px; }
+.roulette-result .r-comp { font-size: 14px; color: #FFD700; margin-top: 6px; font-family: Arial, sans-serif; }
+.roulette-close {
+  margin-top: 25px;
+  padding: 15px 50px;
+  background: #E01E2B;
+  color: #fff;
+  border: none;
+  font-weight: 900;
+  font-size: 18px;
+  letter-spacing: 3px;
+  cursor: pointer;
+  font-family: inherit;
+  border-radius: 12px;
+  box-shadow: 0 0 30px rgba(224,30,43,0.7);
+  transition: all 0.2s;
+  z-index: 50;
+}
+.roulette-close:hover { background: #ff3344; transform: scale(1.05); }
+
+/* === МАГАЗИН ШЛЯПОК === */
+.hats-container {
+  display: flex;
+  gap: 20px;
+  align-items: flex-start;
+  justify-content: center;
+  width: 100%;
+  max-width: 900px;
+  margin-top: 20px;
+}
+.seller {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  flex-shrink: 0;
+}
+.seller img {
+  width: 200px;
+  height: 200px;
+  object-fit: contain;
+  filter: drop-shadow(0 0 30px rgba(224,30,43,0.7));
+  animation: sellerFloat 2s infinite alternate;
+}
+@keyframes sellerFloat {
+  from { transform: translateY(0); }
+  to { transform: translateY(-10px); }
+}
+.seller-name {
+  font-size: 14px;
+  color: #FFD700;
+  margin-top: 10px;
+  letter-spacing: 2px;
+  font-family: Arial, sans-serif;
+  text-align: center;
+}
+.hats-list {
+  flex: 1;
+  max-width: 500px;
+  max-height: 60vh;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.hat-item {
+  background: rgba(26,26,26,0.9);
+  border: 3px solid #333;
+  border-radius: 12px;
+  padding: 12px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-family: Arial, sans-serif;
+  transition: all 0.2s;
+}
+.hat-item:hover { border-color: #E01E2B; }
+.hat-item.owned { border-color: #4CAF50; }
+.hat-item.selected { border-color: #FFD700; box-shadow: 0 0 20px rgba(255,215,0,0.5); }
+.hat-item img {
+  width: 70px;
+  height: 70px;
+  object-fit: contain;
+  border-radius: 10px;
+  background: rgba(0,0,0,0.3);
+  flex-shrink: 0;
+}
+.hat-item .hat-info { flex: 1; }
+.hat-item .hat-name { font-weight: 900; font-size: 15px; letter-spacing: 1px; color: #fff; margin-bottom: 4px; }
+.hat-item .hat-boost { font-size: 12px; color: #4CAF50; font-weight: 900; }
+.hat-item .hat-price { font-size: 12px; color: #FFD700; margin-top: 3px; }
+.hat-item button {
+  background: #E01E2B;
+  color: #fff;
+  border: none;
+  padding: 10px 16px;
+  font-weight: 900;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 12px;
+  letter-spacing: 1px;
+  border-radius: 8px;
+  transition: all 0.2s;
+}
+.hat-item button:hover:not(:disabled) { background: #ff3344; transform: scale(1.05); }
+.hat-item button:disabled { background: #333; color: #666; cursor: not-allowed; }
+.hat-item button.select-btn { background: #4CAF50; }
+.hat-item button.select-btn:hover { background: #66d966; }
+
+.achievements-list {
+  width: 100%;
+  max-width: 600px;
+  max-height: 65vh;
+  overflow-y: auto;
+  margin-top: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.achievement-card {
+  background: rgba(26,26,26,0.9);
+  border: 3px solid #333;
+  border-radius: 12px;
+  padding: 15px;
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  font-family: Arial, sans-serif;
+  transition: all 0.2s;
+}
+.achievement-card.unlocked { border-color: #FFD700; box-shadow: 0 0 20px rgba(255,215,0,0.3); }
+.achievement-card.locked { opacity: 0.5; }
+.achievement-card img {
+  width: 70px; height: 70px;
+  object-fit: contain;
+  border-radius: 10px;
+  border: 2px solid #E01E2B;
+  flex-shrink: 0;
+}
+.achievement-card .ach-info { flex: 1; }
+.achievement-card .ach-name { font-weight: 900; font-size: 16px; letter-spacing: 1px; color: #fff; margin-bottom: 4px; }
+.achievement-card .ach-desc { font-size: 13px; color: #888; margin-bottom: 4px; }
+.achievement-card .ach-reward { font-size: 13px; color: #4CAF50; font-weight: 900; }
+.achievement-card .ach-status { font-size: 24px; flex-shrink: 0; }
+.setting-row {
+  width: 100%;
+  max-width: 500px;
+  margin: 20px 0;
+  font-family: Arial, sans-serif;
+}
+.setting-row label { display: block; font-size: 18px; color: #ccc; margin-bottom: 10px; letter-spacing: 2px; }
+.setting-row input[type=range] { width: 100%; accent-color: #E01E2B; }
+.toast {
+  position: absolute;
+  top: 50%; left: 50%;
+  transform: translate(-50%, -50%);
+  background: #E01E2B;
+  color: #fff;
+  padding: 20px 40px;
+  font-weight: 900;
+  font-family: Arial, sans-serif;
+  font-size: 20px;
+  z-index: 999;
+  opacity: 0;
+  transition: opacity 0.3s;
+  pointer-events: none;
+  letter-spacing: 2px;
+  text-align: center;
+}
+.toast.show { opacity: 1; }
+.rage-flash {
+  position: absolute;
+  inset: 0;
+  background: #E01E2B;
+  opacity: 0;
+  pointer-events: none;
+  z-index: 200;
+}
+.rage-flash.active { animation: rageFlash 0.5s; }
+@keyframes rageFlash { 0% { opacity: 0.8; } 100% { opacity: 0; } }
+.boss-flash {
+  position: absolute;
+  inset: 0;
+  background: #FF0000;
+  opacity: 0;
+  pointer-events: none;
+  z-index: 210;
+}
+.boss-flash.active { animation: bossFlash 0.5s; }
+@keyframes bossFlash { 0% { opacity: 0.8; } 100% { opacity: 0; } }
+.boot-screen {
+  position: absolute;
+  inset: 0;
+  background: #0D0D0D;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 500;
+}
+.boot-logo {
+  max-width: 70vw;
+  max-height: 70vh;
+  width: auto; height: auto;
+  object-fit: contain;
+  opacity: 0;
+  transition: opacity 0.8s;
+  filter: drop-shadow(0 0 80px rgba(224,30,43,0.7));
+}
+.boot-logo.show { opacity: 1; }
+.boot-logo-fallback {
+  font-size: 25vh;
+  font-weight: 900;
+  color: #E01E2B;
+  opacity: 0;
+  transition: opacity 0.8s;
+  text-shadow: 0 0 120px rgba(224,30,43,0.8);
+}
+.boot-logo-fallback.show { opacity: 1; }
+@media (max-width: 700px) {
+  .menu-content, .hats-container { flex-direction: column; gap: 15px; }
+  .event-banner { width: 90%; max-width: 320px; }
+  .seller img { width: 150px; height: 150px; }
+}
+@media (max-width: 600px) {
+  .menu-logo { width: 110px; height: 110px; margin-bottom: 6px; }
+  .menu-title-1 { font-size: 28px; letter-spacing: 3px; }
+  .menu-title-2 { font-size: 36px; letter-spacing: 5px; margin-bottom: 6px; }
+  .menu-subtitle { font-size: 9px; letter-spacing: 4px; margin-bottom: 12px; }
+  .menu-btn { font-size: 13px; padding: 10px; margin: 3px 0; letter-spacing: 2px; }
+  .menu-divider { margin-bottom: 6px; }
+  .menu-divider .line { width: 35px; }
+  .menu-divider .sword { font-size: 14px; }
+  .event-title { font-size: 13px; }
+  .event-desc { font-size: 11px; }
+  .event-banner img { max-width: 200px; }
+  .screen { padding: 15px; }
+  .title { font-size: 26px; letter-spacing: 3px; }
+  .stat { font-size: 18px; padding: 8px 18px; border-width: 2px; }
+  .top-bar { top: 10px; }
+  .head-wrapper { width: 85vw; height: 85vw; max-width: 380px; max-height: 380px; }
+  .head-img { width: 70vw; height: 70vw; max-width: 300px; max-height: 300px; }
+  .ctrl-btn { font-size: 13px; padding: 14px; letter-spacing: 1px; border-width: 2px; }
+  .bottom-controls { padding: 0 12px; gap: 8px; bottom: 15px; }
+  .combo { font-size: 46px; letter-spacing: 2px; }
+  .rage-text { font-size: 32px; letter-spacing: 3px; }
+  .boss-text { font-size: 32px; letter-spacing: 3px; }
+  .boss-bar { width: 90%; top: 65px; }
+  .boss-title { font-size: 14px; }
+  .boss-hp-bar { height: 20px; }
+  .boss-hp-text { font-size: 11px; }
+  .boss-progress { bottom: 110px; width: 70%; }
+  .boss-progress-text { font-size: 10px; }
+  .achievement { min-width: 270px; padding: 12px; right: -400px; gap: 10px; }
+  .achievement.show { right: 10px; }
+  .achievement img { width: 50px; height: 50px; }
+  .achievement .title { font-size: 11px; }
+  .achievement .name { font-size: 13px; }
+  .achievement .reward { font-size: 11px; }
+  .shop-item { padding: 12px; }
+  .shop-item .name { font-size: 14px; letter-spacing: 1px; }
+  .shop-item .desc { font-size: 11px; }
+  .shop-item .price { font-size: 13px; }
+  .shop-item button { padding: 8px 14px; font-size: 11px; letter-spacing: 1px; }
+  .collection-tabs { gap: 3px; }
+  .collection-tab { font-size: 8px; padding: 6px 2px; letter-spacing: 0; min-width: 45px; }
+  .skins-grid { gap: 8px; max-height: 50vh; }
+  .skin-card { padding: 10px; border-width: 2px; }
+  .skin-card img { width: 65px; height: 65px; margin-bottom: 5px; }
+  .skin-card .skin-name { font-size: 12px; }
+  .skin-card .skin-boost { font-size: 10px; }
+  .skin-card .skin-status { font-size: 10px; }
+  .skin-card .skin-action { font-size: 11px; padding: 6px; }
+  .roulette-card { padding: 10px; gap: 8px; }
+  .roulette-card img { width: 55px; height: 55px; }
+  .roulette-card .r-name { font-size: 13px; }
+  .roulette-card .r-desc { font-size: 10px; }
+  .roulette-card .r-price { font-size: 13px; }
+  .roulette-card button { padding: 8px 12px; font-size: 11px; }
+  .roulette-stage { max-width: 320px; max-height: 320px; }
+  .roulette-wheel-center { width: 55px; height: 55px; font-size: 28px; }
+  .roulette-skin-orbit { width: 55px; height: 55px; margin: -27px 0 0 -27px; }
+  .roulette-skins-ring { inset: -40px; }
+  .roulette-result img { width: 110px; height: 110px; }
+  .roulette-result .r-name { font-size: 22px; }
+  .achievement-card { padding: 10px; gap: 10px; border-width: 2px; }
+  .achievement-card img { width: 45px; height: 45px; }
+  .achievement-card .ach-name { font-size: 13px; }
+  .achievement-card .ach-desc { font-size: 10px; }
+  .achievement-card .ach-reward { font-size: 11px; }
+  .achievement-card .ach-status { font-size: 18px; }
+  .setting-row { margin: 12px 0; }
+  .setting-row label { font-size: 14px; letter-spacing: 1px; }
+  .toast { font-size: 16px; padding: 15px 25px; }
+  .donate-popup { font-size: 32px; }
+  .seller img { width: 120px; height: 120px; }
+  .hat-item { padding: 10px; gap: 8px; }
+  .hat-item img { width: 55px; height: 55px; }
+  .hat-item .hat-name { font-size: 13px; }
+  .hat-item .hat-boost { font-size: 11px; }
+  .hat-item button { padding: 8px 12px; font-size: 11px; }
+}
+@media (max-width: 380px) {
+  .menu-title-1 { font-size: 22px; }
+  .menu-title-2 { font-size: 28px; }
+  .menu-btn { font-size: 11px; padding: 9px; }
+  .event-title { font-size: 11px; }
+  .event-desc { font-size: 10px; }
+  .head-wrapper { width: 80vw; height: 80vw; }
+  .head-img { width: 65vw; height: 65vw; }
+  .combo { font-size: 36px; }
+  .rage-text { font-size: 26px; }
+  .boss-text { font-size: 26px; }
+  .collection-tab { font-size: 7px; padding: 5px 2px; min-width: 40px; }
+}
+</style>
+</head>
+<body>
+
+<div id="game">
+
+  <div class="clouds-container" id="cloudsContainer"></div>
+  <div class="bubbles-container" id="bubblesContainer"></div>
+
+  <div class="rage-flash" id="rageFlash"></div>
+  <div class="boss-flash" id="bossFlash"></div>
+
+  <div class="boot-screen" id="bootScreen">
+    <img class="boot-logo" id="bootLogo" src="logo.png" alt="MELLSTROY TAP"
+         onerror="this.style.display='none'; const f=document.getElementById('bootLogoFallback'); f.style.display='block'; setTimeout(()=>f.classList.add('show'),100);">
+    <div class="boot-logo-fallback" id="bootLogoFallback" style="display:none;">RCS</div>
+  </div>
+
+  <div class="screen" id="menuScreen">
+    <img class="menu-logo" src="logo.png" alt="RCS" onerror="this.style.display='none';">
+    <div class="menu-title-1">MELLSTROY</div>
+    <div class="menu-title-2">TAP</div>
+    <div class="menu-divider">
+      <div class="line"></div>
+      <div class="sword">⚔</div>
+      <div class="line"></div>
+    </div>
+    <div class="menu-subtitle">RED CARD STUDIO</div>
+
+    <div class="menu-content">
+      <div class="menu-column">
+        <div class="menu-buttons">
+          <button class="menu-btn" onclick="startGame()">▶ ИГРАТЬ</button>
+          <button class="menu-btn" onclick="openShop('menu')">🛒 МАГАЗИН</button>
+          <button class="menu-btn" onclick="openHats()">👒 ШЛЯПКИ</button>
+          <button class="menu-btn" onclick="openSkins()">🎨 СКИНЫ</button>
+          <button class="menu-btn" onclick="openRoulettes()">🎰 РУЛЕТКИ</button>
+          <button class="menu-btn" onclick="openAchievements()">🏆 ДОСТИЖЕНИЯ</button>
+          <button class="menu-btn" onclick="openSettings()">⚙ НАСТРОЙКИ</button>
+          <div style="margin-top:12px; color:#666; font-family:Arial; font-size:12px; text-align:center;">
+            Рекорд: <span id="menuRecord" style="color:#FFD700;">0</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="menu-column">
+        <div class="event-banner" onclick="showToast('🔔 Скоро!')">
+          <div class="event-title">🔔 ОБНОВЛЕНИЕ!</div>
+          <img src="ivent_1.png" alt="Обновление" onerror="this.style.display='none';">
+          <div class="event-desc">Верхний Новгород уже здесь!</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="screen" id="gameScreen" style="background:transparent;">
+    <div class="top-bar">
+      <div class="stat coins">💰 <span id="coins">0</span></div>
+    </div>
+    <div class="boss-bar" id="bossBar">
+      <div class="boss-title" id="bossTitle">⚔ БОСС ⚔</div>
+      <div class="boss-hp-bar"><div class="boss-hp-fill" id="bossHpFill"></div></div>
+      <div class="boss-hp-text" id="bossHpText">3000 / 3000</div>
+    </div>
+    <div class="combo" id="combo">x1</div>
+    <div class="rage-text" id="rageText">⚡ ЯРОСТЬ x10 ⚡</div>
+    <div class="boss-text" id="bossText">⚔ БОСС ⚔</div>
+    <div class="achievement" id="achievement">
+      <img src="head_yarost.png" alt="Достижение" id="achImg">
+      <div class="text">
+        <div class="title">🏆 ДОСТИЖЕНИЕ</div>
+        <div class="name" id="achName">Достигните ярости</div>
+        <div class="reward" id="achReward">+5 000 💰</div>
+      </div>
+    </div>
+    <div class="head-wrapper">
+      <svg class="rage-circle" viewBox="0 0 500 500">
+        <circle class="rage-circle-bg" cx="250" cy="250" r="240"></circle>
+        <circle class="rage-circle-fill" id="rageCircle" cx="250" cy="250" r="240" transform="rotate(-90 250 250)"></circle>
+      </svg>
+      <div class="head-container" id="head">
+        <img class="head-img" id="headImg" src="head.png" alt="Голова">
+      </div>
+    </div>
+    <div class="boss-progress" id="bossProgress">
+      <div class="boss-progress-text">ДО БОССА: <span id="bossProgressText">0 / 3000</span></div>
+      <div class="boss-progress-bar"><div class="boss-progress-fill" id="bossProgressFill"></div></div>
+    </div>
+    <div class="bottom-controls">
+      <button class="ctrl-btn" onclick="openShop('game')">🛒 МАГАЗИН</button>
+      <button class="ctrl-btn" onclick="goMenu()">🏠 В МЕНЮ</button>
+    </div>
+  </div>
+
+  <div class="screen" id="shopScreen">
+    <div class="title" style="font-size:28px;">МАГАЗИН</div>
+    <div style="color:#FFD700; margin-bottom:15px; font-family:Arial; font-size:18px;" id="shopCoins">💰 0</div>
+    <div class="shop-list" id="shopList"></div>
+    <button class="menu-btn" onclick="closeShop()" style="margin-top:15px;">← НАЗАД</button>
+  </div>
+
+  <div class="screen" id="hatsScreen">
+    <div class="title" style="font-size:28px;">👒 МАГАЗИН ШЛЯПОК</div>
+    <div style="color:#FFD700; margin-bottom:10px; font-family:Arial; font-size:18px;" id="hatsCoins">💰 0</div>
+    <div class="hats-container">
+      <div class="seller">
+        <img src="head_prodavec.png" alt="Продавец шляпок" onerror="this.src='head.png'">
+        <div class="seller-name">Продавец шляпок</div>
+      </div>
+      <div class="hats-list" id="hatsList"></div>
+    </div>
+    <button class="menu-btn" onclick="closeHats()" style="margin-top:15px;">← НАЗАД</button>
+  </div>
+
+  <div class="screen" id="skinsScreen">
+    <div class="title" style="font-size:28px;">🎨 КОЛЛЕКЦИЯ</div>
+    <div class="collection-tabs">
+      <button class="collection-tab active" id="tabCommon" onclick="switchCollection('common')">ОБЫЧНЫЕ</button>
+      <button class="collection-tab" id="tabMitish" onclick="switchCollection('mitish')">МЫТИЩИ</button>
+      <button class="collection-tab" id="tabBurmalda" onclick="switchCollection('burmalda')">БУРМАЛДИНЦЫ</button>
+      <button class="collection-tab" id="tabArmy" onclick="switchCollection('army')">АРМИЯ</button>
+      <button class="collection-tab" id="tabVerx" onclick="switchCollection('verx')">ВЕРХНИЙ НОВГОРОД</button>
+    </div>
+    <div class="skins-grid" id="skinsGrid"></div>
+    <button class="menu-btn" onclick="closeSkins()" style="margin-top:15px;">← НАЗАД</button>
+  </div>
+
+  <div class="screen" id="roulettesScreen">
+    <div class="title" style="font-size:28px;">🎰 РУЛЕТКИ</div>
+    <div style="color:#FFD700; margin-bottom:10px; font-family:Arial; font-size:18px;" id="rouletteCoins">💰 0</div>
+    <div class="roulettes-list" id="roulettesList"></div>
+    <button class="menu-btn" onclick="closeRoulettes()" style="margin-top:15px;">← НАЗАД</button>
+  </div>
+
+  <div class="screen" id="achievementsScreen">
+    <div class="title" style="font-size:28px;">🏆 ДОСТИЖЕНИЯ</div>
+    <div style="color:#FFD700; margin-bottom:10px; font-family:Arial; font-size:15px;" id="achCount">0 / 7</div>
+    <div class="achievements-list" id="achievementsList"></div>
+    <button class="menu-btn" onclick="closeAchievements()" style="margin-top:15px;">← НАЗАД</button>
+  </div>
+
+  <div class="screen" id="settingsScreen">
+    <div class="title" style="font-size:28px; margin-bottom:20px;">НАСТРОЙКИ</div>
+    <div class="setting-row">
+      <label>🎵 Музыка: <span id="musicVal">50</span>%</label>
+      <input type="range" id="musicSlider" min="0" max="100" value="50">
+    </div>
+    <div class="setting-row">
+      <label>🔊 Звуки: <span id="sfxVal">70</span>%</label>
+      <input type="range" id="sfxSlider" min="0" max="100" value="70">
+    </div>
+    <button class="menu-btn" onclick="testSfx()" style="margin-top:10px; border-color: #FFD700; color: #FFD700;">🔊 ПРОВЕРИТЬ ЗВУК</button>
+    <button class="menu-btn" onclick="resetProgress()" style="margin-top:15px;">🗑 СБРОСИТЬ</button>
+    <button class="menu-btn" onclick="closeSettings()">← НАЗАД</button>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+  <div class="roulette-overlay" id="rouletteOverlay">
+    <div class="roulette-stage">
+      <div class="roulette-pointer"></div>
+      <div class="roulette-skins-ring" id="skinsRing"></div>
+      <div class="roulette-wheel" id="rouletteWheel">
+        <div class="roulette-wheel-center">🎰</div>
+      </div>
+    </div>
+    <div class="roulette-result" id="rouletteResult">
+      <img id="resultImg" src="head.png" alt="Скин">
+      <div class="r-name" id="resultName">Скин</div>
+      <div class="r-status" id="resultStatus">НОВЫЙ!</div>
+      <div class="r-comp" id="resultComp"></div>
+    </div>
+    <button class="roulette-close" id="rouletteClose" onclick="closeRouletteOverlay()" style="display:none;">OK</button>
+  </div>
+
+  <audio id="bgMusic" src="music.mp3" loop></audio>
+  <audio id="rageMusic" src="music_yarost.mp3" loop></audio>
+  <audio id="bossMusic" src="boss_music.mp3" loop></audio>
+  <audio id="generallMusic" src="music_generall.mp3" loop></audio>
+  <audio id="moydidirMusic" src="mytishchi_music.mp3" loop></audio>
+  <audio id="sverxMusic" src="music_bossoblako.mp3" loop></audio>
+  <audio id="rotaPodem" src="rota_podem.mp3"></audio>
+  <audio id="spinSound" src="roulette-spin.mp3"></audio>
+  <audio id="donateSfx" src="donate-sfx.mp3" preload="auto"></audio>
+</div>
+
+<script>
+const DEFAULT_DATA = {
+  coins: 0, record: 0, tapPower: 1, multiplier: 1,
+  musicVolume: 0.5, sfxVolume: 0.7, rageProgress: 0,
+  currentSkin: 'head', ownedSkins: ['head'], totalTaps: 0,
+  currentHat: 'none', ownedHats: [],
+  rageAchievementShown: false, millionaireAchievementShown: false,
+  billionaireAchievementShown: false, bossAchievementShown: false,
+  bossFightAchievementShown: false, hatAchievementShown: false,
+  ludomanAchievementShown: false,
+  bossTaps: 0, bossHp: 0, bossActive: false, currentBoss: null
+};
+
+const COLLECTIONS = {
+  common: {
+    name: 'Обычные', rouletteImg: 'ruletka_obich.png', roulettePrice: 250000, compensation: 100000,
+    skins: [
+      { id: 'head_pank', name: 'Панк', file: 'head_pank.png', boost: 2, chance: 35 },
+      { id: 'head_bogach', name: 'Богатый', file: 'head_bogach.png', boost: 2, chance: 35 },
+      { id: 'head_drun', name: 'Тёмный Друн', file: 'head_drun.png', boost: 2.5, chance: 20 },
+      { id: 'head', name: 'Обычный', file: 'head.png', boost: 1, chance: 10 }
+    ]
+  },
+  mitish: {
+    name: 'Мытищи', rouletteImg: 'ruletka_mitish.png', roulettePrice: 750000, compensation: 300000,
+    skins: [
+      { id: 'head_tazik', name: 'Чистый', file: 'head_tazik.png', boost: 1.5, chance: 75 },
+      { id: 'head_moydidir', name: 'Мойдадыр', file: 'head_moydidir.png', boost: 5, chance: 25 }
+    ]
+  },
+  burmalda: {
+    name: 'Бурмалдинцы', rouletteImg: 'ruletka_burmalda.png', roulettePrice: 2000000, compensation: 800000,
+    skins: [
+      { id: 'head_gitarist', name: 'Гитарист', file: 'head_gitarist.png', boost: 2, chance: 25 },
+      { id: 'head_kotost', name: 'Котость', file: 'head_kotost.png', boost: 3, chance: 20 },
+      { id: 'head_artur', name: 'Артур', file: 'head_artur.png', boost: 7.5, chance: 20 },
+      { id: 'head_bulba', name: 'Бульба', file: 'head_bulba.png', boost: 5, chance: 15 },
+      { id: 'head_chekushka', name: 'Чекунец', file: 'head_chekushka.png', boost: 6, chance: 12 },
+      { id: 'head_burmaldaech', name: 'Бурмаладаец', file: 'head_burmaldaech.png', boost: 3, chance: 8 }
+    ]
+  },
+  army: {
+    name: 'Армия', rouletteImg: 'ruletka_armia.png', roulettePrice: 3000000, compensation: 900000,
+    skins: [
+      { id: 'head_radovoi', name: 'Рядовой', file: 'head_radovoi.png', boost: 4, chance: 50 },
+      { id: 'head_starshina', name: 'Старшина', file: 'head_starshina.png', boost: 6.5, chance: 35 },
+      { id: 'head_generall_skin', name: 'Генерал', file: 'boss_generall.png', boost: 8.5, chance: 15 }
+    ]
+  },
+  verx: {
+    name: 'Верхний Новгород', rouletteImg: 'relutka_vverx.png', roulettePrice: 7000000, compensation: 2800000,
+    skins: [
+      { id: 'head_vozdyx', name: 'Воздуханчик', file: 'head_vozdyx.png', boost: 5, chance: 50 },
+      { id: 'head_sverxkotost', name: 'СверхКотость', file: 'head_sverxkotost.png', boost: 7, chance: 25 },
+      { id: 'head_german', name: 'Герман', file: 'head_german.png', boost: 8.7, chance: 15 },
+      { id: 'head_sverx', name: 'СверхОблачность', file: 'head_sverx.png', boost: 9, chance: 10 }
+    ]
+  }
+};
+
+const ALL_SKINS = [
+  { id: 'head', name: 'Обычный', file: 'head.png', boost: 1 },
+  { id: 'head_pank', name: 'Панк', file: 'head_pank.png', boost: 2 },
+  { id: 'head_bogach', name: 'Богатый', file: 'head_bogach.png', boost: 2 },
+  { id: 'head_drun', name: 'Тёмный Друн', file: 'head_drun.png', boost: 2.5 },
+  { id: 'head_tazik', name: 'Чистый', file: 'head_tazik.png', boost: 1.5 },
+  { id: 'head_moydidir', name: 'Мойдадыр', file: 'head_moydidir.png', boost: 5 },
+  { id: 'head_gitarist', name: 'Гитарист', file: 'head_gitarist.png', boost: 2 },
+  { id: 'head_kotost', name: 'Котость', file: 'head_kotost.png', boost: 3 },
+  { id: 'head_artur', name: 'Артур', file: 'head_artur.png', boost: 7.5 },
+  { id: 'head_bulba', name: 'Бульба', file: 'head_bulba.png', boost: 5 },
+  { id: 'head_chekushka', name: 'Чекунец', file: 'head_chekushka.png', boost: 6 },
+  { id: 'head_burmaldaech', name: 'Бурмаладаец', file: 'head_burmaldaech.png', boost: 3 },
+  { id: 'head_radovoi', name: 'Рядовой', file: 'head_radovoi.png', boost: 4 },
+  { id: 'head_starshina', name: 'Старшина', file: 'head_starshina.png', boost: 6.5 },
+  { id: 'head_generall_skin', name: 'Генерал', file: 'boss_generall.png', boost: 8.5 },
+  { id: 'head_vozdyx', name: 'Воздуханчик', file: 'head_vozdyx.png', boost: 5 },
+  { id: 'head_sverxkotost', name: 'СверхКотость', file: 'head_sverxkotost.png', boost: 7 },
+  { id: 'head_german', name: 'Герман', file: 'head_german.png', boost: 8.7 },
+  { id: 'head_sverx', name: 'СверхОблачность', file: 'head_sverx.png', boost: 9 }
+];
+
+const ARMY_SKINS = ['head_radovoi', 'head_starshina', 'head_generall_skin'];
+const SKY_SKINS = ['head_vozdyx', 'head_sverxkotost', 'head_german', 'head_sverx'];
+
+const HATS = [
+  { id: 'spider', name: 'Спайдер Шляпа', file: 'spider_shlapa.png', price: 6000000, boost: 7 },
+  { id: 'kristal', name: 'Кристальная Шляпа', file: 'kristal_shlapa.png', price: 8000000, boost: 8 },
+  { id: 'vulkan', name: 'Вулканическая Шляпа', file: 'vulkan_shlapa.png', price: 5000000, boost: 6.5 },
+  { id: 'kosmic', name: 'Космическая Шляпа', file: 'kosmic_shlapa.png', price: 9000000, boost: 10 }
+];
+
+const SHOP_ITEMS = [
+  { id: 'power', name: '⚡ Сила тапа +1', desc: 'Больше донатов за тап', basePrice: 200, max: 100, key: 'tapPower' },
+  { id: 'mult', name: '💎 Множитель x2', desc: 'Удваивает донаты', basePrice: 500, max: 100, key: 'multiplier' }
+];
+
+const ACHIEVEMENTS = [
+  { id: 'rage', name: 'Достигните ярости', desc: 'Активируйте режим ярости', img: 'head_yarost.png', reward: 5000, flag: 'rageAchievementShown' },
+  { id: 'millionaire', name: 'Миллионер', desc: 'Получите один миллион', img: 'head_bogach.png', reward: 10000, flag: 'millionaireAchievementShown' },
+  { id: 'billionaire', name: 'Миллиардер', desc: 'Получите свой первый миллиард', img: 'skolko.png', reward: 10000000, flag: 'billionaireAchievementShown' },
+  { id: 'bossFight', name: 'Босс Файт', desc: 'Первый раз сразитесь с боссом', img: 'boss_generall.png', reward: 1000000, flag: 'bossFightAchievementShown' },
+  { id: 'boss', name: 'Победитель босса', desc: 'Победите босса', img: 'boss_generall.png', reward: 50000, flag: 'bossAchievementShown' },
+  { id: 'hat', name: 'Шляповод', desc: 'Зайдите в магазин шляпок', img: 'head_prodavec.png', reward: 400000, flag: 'hatAchievementShown' },
+  { id: 'ludoman', name: 'Лудоман', desc: 'Получите все скины с рулеток', img: 'ruletka_obich.png', reward: 600000, flag: 'ludomanAchievementShown' }
+];
+
+const BOSSES = {
+  generall: {
+    id: 'generall', name: 'ГЕНЕРАЛ', img: 'boss_generall.png',
+    hp: 3000, reward: 5000000,
+    musicId: 'generallMusic', spawnSoundId: 'rotaPodem',
+    cssClass: 'boss-generall'
+  },
+  moydidir: {
+    id: 'moydidir', name: 'МОЙДАДЫР', img: 'head_moydidir.png',
+    hp: 2500, reward: 3000000,
+    musicId: 'moydidirMusic', spawnSoundId: null,
+    cssClass: 'boss-moydidir'
+  },
+  sverx: {
+    id: 'sverx', name: 'СВЕРХОБЛАЧНОСТЬ', img: 'head_sverx.png',
+    hp: 4500, reward: 7000000,
+    musicId: 'sverxMusic', spawnSoundId: null,
+    cssClass: 'boss-sverx'
+  }
+};
+
+const BOSS_TAPS_NEEDED = 3000;
+
+let currentCollection = 'common';
+let spinning = false;
+let bubblesInterval = null;
+let cloudsInterval = null;
+
+function getPrice(item, level) { return Math.floor(item.basePrice * Math.pow(1.5, level)); }
+
+let data = loadData();
+function loadData() {
+  try {
+    const saved = localStorage.getItem('rcs_tap_save');
+    if (saved) {
+      const parsed = JSON.parse(saved);
+      const merged = { ...DEFAULT_DATA, ...parsed };
+      if (!merged.ownedSkins.includes('head')) merged.ownedSkins.push('head');
+      if (!merged.ownedHats) merged.ownedHats = [];
+      return merged;
+    }
+  } catch(e) {}
+  return { ...DEFAULT_DATA };
+}
+function saveData() { localStorage.setItem('rcs_tap_save', JSON.stringify(data)); }
+
+function startBoot() {
+  const logo = document.getElementById('bootLogo');
+  const fallback = document.getElementById('bootLogoFallback');
+  setTimeout(() => {
+    if (logo && logo.style.display !== 'none') logo.classList.add('show');
+    if (fallback && fallback.style.display !== 'none') fallback.classList.add('show');
+  }, 200);
+  setTimeout(() => {
+    document.getElementById('bootScreen').style.display = 'none';
+    showScreen('menuScreen');
+    updateMenu();
+  }, 3200);
+}
+
+let currentScreen = 'menuScreen';
+let gameRunning = false;
+let shopReturnScreen = 'menu';
+let hatsReturnScreen = 'menu';
+
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  if (id) { document.getElementById(id).classList.add('active'); currentScreen = id; }
+}
+function updateMenu() { document.getElementById('menuRecord').textContent = data.record.toLocaleString(); }
+
+function goMenu() {
+  gameRunning = false; saveData(); clearParticles(); stopRage();
+  if (data.bossActive) endBoss(false);
+  updateUI(); showScreen('menuScreen'); updateMenu();
+}
+function clearParticles() { document.querySelectorAll('.donate-popup').forEach(p => p.remove()); }
+
+function showAchievementPopup(img, name, reward) {
+  const ach = document.getElementById('achievement');
+  document.getElementById('achImg').src = img;
+  document.getElementById('achName').textContent = name;
+  document.getElementById('achReward').textContent = reward;
+  ach.classList.add('show');
+  setTimeout(() => ach.classList.remove('show'), 5000);
+}
+
+function resetAllSounds() {
+  ['spinSound', 'donateSfx'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) { try { el.pause(); el.currentTime = 0; } catch(e) {} }
+  });
+}
+
+function playDonateSfx() {
+  const sfx = document.getElementById('donateSfx');
+  if (!sfx) return;
+  try {
+    sfx.pause(); sfx.currentTime = 0;
+    sfx.volume = data.sfxVolume;
+    sfx.play().catch(() => {});
+  } catch(e) {}
+}
+function testSfx() { playDonateSfx(); showToast('🔊 Тест звука'); }
+
+function updateArmyMode() {
+  const game = document.getElementById('game');
+  game.classList.remove('army-mode', 'sky-mode');
+  if (ARMY_SKINS.includes(data.currentSkin)) game.classList.add('army-mode');
+  if (SKY_SKINS.includes(data.currentSkin)) game.classList.add('sky-mode');
+  startClouds();
+}
+
+function startClouds() {
+  const container = document.getElementById('cloudsContainer');
+  container.innerHTML = '';
+  if (cloudsInterval) { clearInterval(cloudsInterval); cloudsInterval = null; }
+  const isSky = SKY_SKINS.includes(data.currentSkin);
+  const isSkyBoss = data.currentBoss === 'sverx';
+  if (isSky || isSkyBoss) {
+    container.classList.add('show');
+    cloudsInterval = setInterval(() => {
+      const cloud = document.createElement('div');
+      cloud.className = 'cloud';
+      const size = 30 + Math.random() * 60;
+      cloud.style.width = size + 'px';
+      cloud.style.height = size * 0.7 + 'px';
+      cloud.style.left = Math.random() * 100 + '%';
+      cloud.style.bottom = '-80px';
+      const duration = 5 + Math.random() * 4;
+      cloud.style.animationDuration = duration + 's';
+      container.appendChild(cloud);
+      setTimeout(() => cloud.remove(), duration * 1000);
+    }, 250);
+  } else {
+    container.classList.remove('show');
+  }
+}
+
+function spawnBoss() {
+  const keys = Object.keys(BOSSES);
+  const randomKey = keys[Math.floor(Math.random() * keys.length)];
+  const boss = BOSSES[randomKey];
+
+  data.bossActive = true;
+  data.currentBoss = randomKey;
+  data.bossHp = boss.hp;
+  saveData();
+
+  const flash = document.getElementById('bossFlash');
+  flash.classList.add('active');
+  setTimeout(() => flash.classList.remove('active'), 500);
+
+  document.getElementById('game').classList.add(boss.cssClass);
+  document.getElementById('head').classList.add(boss.cssClass);
+  document.getElementById('bossBar').classList.add('show');
+  document.getElementById('bossText').classList.add('show');
+  document.getElementById('bossText').textContent = '⚔ ' + boss.name + ' ⚔';
+  document.getElementById('bossTitle').textContent = '⚔ ' + boss.name + ' ⚔';
+  document.getElementById('headImg').src = boss.img;
+  updateBossHp();
+
+  if (boss.id === 'moydidir') startBubbles();
+  if (boss.id === 'sverx') startClouds();
+
+  const music = document.getElementById('bgMusic');
+  const rageMusic = document.getElementById('rageMusic');
+  if (music) music.pause();
+  if (rageMusic) rageMusic.pause();
+
+  if (boss.spawnSoundId) {
+    const spawnSound = document.getElementById(boss.spawnSoundId);
+    if (spawnSound) {
+      try {
+        spawnSound.pause(); spawnSound.currentTime = 0;
+        spawnSound.volume = data.sfxVolume;
+        spawnSound.play().catch(() => {});
+      } catch(e) {}
+    }
+  }
+
+  setTimeout(() => {
+    const bossMusic = document.getElementById(boss.musicId);
+    if (bossMusic) {
+      bossMusic.volume = data.musicVolume;
+      bossMusic.currentTime = 0;
+      bossMusic.play().catch(() => {});
+    }
+  }, boss.spawnSoundId ? 1500 : 0);
+
+  if (!data.bossFightAchievementShown) {
+    data.bossFightAchievementShown = true;
+    data.coins += 1000000;
+    saveData();
+    playDonateSfx();
+    showAchievementPopup('boss_generall.png', 'Босс Файт', '+1 000 000 💰');
+    updateUI();
+  }
+
+  showToast('⚔ ' + boss.name + ' ПОЯВИЛСЯ! ⚔');
+}
+
+function updateBossHp() {
+  const boss = BOSSES[data.currentBoss];
+  if (!boss) return;
+  const fill = document.getElementById('bossHpFill');
+  const text = document.getElementById('bossHpText');
+  fill.style.width = (data.bossHp / boss.hp) * 100 + '%';
+  text.textContent = data.bossHp + ' / ' + boss.hp;
+}
+
+function damageBoss() {
+  if (!data.bossActive) return;
+  data.bossHp--;
+  updateBossHp();
+  if (data.bossHp <= 0) defeatBoss();
+}
+
+function defeatBoss() {
+  const boss = BOSSES[data.currentBoss];
+  if (!boss) return;
+  data.bossActive = false;
+  data.bossHp = 0;
+  data.bossTaps = 0;
+  data.coins += boss.reward;
+
+  if (!data.bossAchievementShown) {
+    data.bossAchievementShown = true;
+    data.coins += 50000;
+    saveData();
+    playDonateSfx();
+    showAchievementPopup('boss_generall.png', 'Победитель босса', '+50 000 💰');
+  } else {
+    saveData();
+    playDonateSfx();
+  }
+
+  endBoss(true);
+  showToast('🏆 ' + boss.name + ' ПОБЕЖДЁН! +' + boss.reward.toLocaleString() + ' 💰');
+  updateUI();
+}
+
+function endBoss(victory) {
+  data.bossActive = false;
+  data.currentBoss = null;
+  saveData();
+
+  document.getElementById('game').classList.remove('boss-generall', 'boss-moydidir', 'boss-sverx');
+  document.getElementById('head').classList.remove('boss-generall', 'boss-moydidir', 'boss-sverx');
+  document.getElementById('bossBar').classList.remove('show');
+  document.getElementById('bossText').classList.remove('show');
+
+  stopBubbles();
+
+  ['bossMusic', 'generallMusic', 'moydidirMusic', 'sverxMusic'].forEach(id => {
+    const m = document.getElementById(id);
+    if (m) { m.pause(); m.currentTime = 0; }
+  });
+
+  if (gameRunning) {
+    const music = document.getElementById('bgMusic');
+    music.volume = data.musicVolume;
+    music.currentTime = 0;
+    music.play().catch(() => {});
+  }
+
+  updateHeadImage();
+  updateBossProgress();
+  updateArmyMode();
+}
+
+function updateBossProgress() {
+  const fill = document.getElementById('bossProgressFill');
+  const text = document.getElementById('bossProgressText');
+  if (data.bossActive) {
+    document.getElementById('bossProgress').style.opacity = '0';
+    return;
+  }
+  document.getElementById('bossProgress').style.opacity = '0.7';
+  fill.style.width = (data.bossTaps / BOSS_TAPS_NEEDED) * 100 + '%';
+  text.textContent = data.bossTaps + ' / ' + BOSS_TAPS_NEEDED;
+}
+
+function startBubbles() {
+  const container = document.getElementById('bubblesContainer');
+  container.classList.add('show');
+  container.innerHTML = '';
+  bubblesInterval = setInterval(() => {
+    const bubble = document.createElement('div');
+    bubble.className = 'bubble';
+    const size = 15 + Math.random() * 35;
+    bubble.style.width = size + 'px';
+    bubble.style.height = size + 'px';
+    bubble.style.left = Math.random() * 100 + '%';
+    bubble.style.bottom = '-50px';
+    const duration = 4 + Math.random() * 4;
+    bubble.style.animationDuration = duration + 's';
+    container.appendChild(bubble);
+    setTimeout(() => bubble.remove(), duration * 1000);
+  }, 200);
+}
+function stopBubbles() {
+  const container = document.getElementById('bubblesContainer');
+  container.classList.remove('show');
+  container.innerHTML = '';
+  if (bubblesInterval) { clearInterval(bubblesInterval); bubblesInterval = null; }
+}
+
+function checkAchievements() {
+  if (!data.millionaireAchievementShown && data.coins >= 1000000) {
+    data.millionaireAchievementShown = true; data.coins += 10000; saveData();
+    playDonateSfx(); showAchievementPopup('head_bogach.png', 'Миллионер', '+10 000 💰'); updateUI();
+  }
+  if (!data.billionaireAchievementShown && data.coins >= 1000000000) {
+    data.billionaireAchievementShown = true; data.coins += 10000000; saveData();
+    playDonateSfx(); showAchievementPopup('skolko.png', 'Миллиардер', '+10 000 000 💰'); updateUI();
+  }
+  // Лудоман — все скины со всех рулеток
+  if (!data.ludomanAchievementShown) {
+    let allOwned = true;
+    Object.keys(COLLECTIONS).forEach(k => {
+      COLLECTIONS[k].skins.forEach(skin => {
+        if (!data.ownedSkins.includes(skin.id)) allOwned = false;
+      });
+    });
+    if (allOwned) {
+      data.ludomanAchievementShown = true;
+      data.coins += 600000;
+      saveData();
+      playDonateSfx();
+      showAchievementPopup('ruletka_obich.png', 'Лудоман', '+600 000 💰');
+      updateUI();
+    }
+  }
+}
+
+function openShop(from) {
+  shopReturnScreen = from; saveData();
+  document.getElementById('shopCoins').textContent = '💰 ' + data.coins.toLocaleString();
+  renderShop(); showScreen('shopScreen');
+}
+function closeShop() {
+  if (shopReturnScreen === 'game' && gameRunning) { showScreen('gameScreen'); updateUI(); }
+  else { goMenu(); }
+}
+function renderShop() {
+  const list = document.getElementById('shopList'); list.innerHTML = '';
+  SHOP_ITEMS.forEach(item => {
+    const level = data[item.key]; const isMax = level >= item.max;
+    const price = getPrice(item, level); const canBuy = data.coins >= price;
+    const div = document.createElement('div'); div.className = 'shop-item';
+    div.innerHTML = `
+      <div class="info">
+        <div class="name">${item.name}</div>
+        <div class="desc">${item.desc}</div>
+        <div class="price">💰 ${price.toLocaleString()} (ур. ${level}/${item.max})</div>
+      </div>
+      <button ${isMax || !canBuy ? 'disabled' : ''} onclick="buyItem('${item.id}')">${isMax ? '✅ МАКС' : 'КУПИТЬ'}</button>
+    `;
+    list.appendChild(div);
+  });
+}
+function buyItem(id) {
+  const item = SHOP_ITEMS.find(i => i.id === id); if (!item) return;
+  const level = data[item.key]; if (level >= item.max) return;
+  const price = getPrice(item, level);
+  if (data.coins >= price) {
+    data.coins -= price; data[item.key] += 1; saveData();
+    showToast('✅ Куплено!');
+    document.getElementById('shopCoins').textContent = '💰 ' + data.coins.toLocaleString();
+    renderShop();
+  } else { showToast('❌ Не хватает донатов'); }
+}
+
+/* === МАГАЗИН ШЛЯПОК === */
+function openHats() {
+  hatsReturnScreen = 'menu';
+  document.getElementById('hatsCoins').textContent = '💰 ' + data.coins.toLocaleString();
+  renderHats(); showScreen('hatsScreen');
+
+  if (!data.hatAchievementShown) {
+    data.hatAchievementShown = true;
+    data.coins += 400000;
+    saveData();
+    playDonateSfx();
+    showAchievementPopup('head_prodavec.png', 'Шляповод', '+400 000 💰');
+    updateUI();
+  }
+}
+function closeHats() { goMenu(); }
+function renderHats() {
+  const list = document.getElementById('hatsList'); list.innerHTML = '';
+  HATS.forEach(hat => {
+    const owned = data.ownedHats.includes(hat.id);
+    const isCurrent = data.currentHat === hat.id;
+    const canBuy = data.coins >= hat.price;
+    const div = document.createElement('div');
+    div.className = 'hat-item';
+    if (owned) div.classList.add('owned');
+    if (isCurrent) div.classList.add('selected');
+
+    let btn = '';
+    if (!owned) {
+      btn = `<button ${!canBuy ? 'disabled' : ''} onclick="buyHat('${hat.id}')">КУПИТЬ</button>`;
+    } else if (!isCurrent) {
+      btn = `<button class="select-btn" onclick="selectHat('${hat.id}')">НАДЕТЬ</button>`;
+    } else {
+      btn = `<button disabled>✅ НАДЕТА</button>`;
+    }
+
+    div.innerHTML = `
+      <img src="${hat.file}" alt="${hat.name}" onerror="this.src='head.png'">
+      <div class="hat-info">
+        <div class="hat-name">${hat.name}</div>
+        <div class="hat-boost">x${hat.boost} к донатам</div>
+        <div class="hat-price">💰 ${hat.price.toLocaleString()}</div>
+      </div>
+      ${btn}
+    `;
+    list.appendChild(div);
+  });
+}
+function buyHat(id) {
+  const hat = HATS.find(h => h.id === id); if (!hat) return;
+  if (data.ownedHats.includes(id)) return;
+  if (data.coins >= hat.price) {
+    data.coins -= hat.price;
+    data.ownedHats.push(id);
+    data.currentHat = id;
+    saveData();
+    showToast('✅ Куплено: ' + hat.name);
+    document.getElementById('hatsCoins').textContent = '💰 ' + data.coins.toLocaleString();
+    renderHats();
+  } else {
+    showToast('❌ Не хватает донатов');
+  }
+}
+function selectHat(id) {
+  data.currentHat = id;
+  saveData();
+  renderHats();
+  showToast('✅ Надета: ' + HATS.find(h => h.id === id).name);
+}
+
+function openSkins() {
+  currentCollection = 'common';
+  document.querySelectorAll('.collection-tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('tabCommon').classList.add('active');
+  renderSkins(); showScreen('skinsScreen');
+}
+function closeSkins() { goMenu(); }
+function switchCollection(name) {
+  currentCollection = name;
+  document.querySelectorAll('.collection-tab').forEach(t => t.classList.remove('active'));
+  if (name === 'common') document.getElementById('tabCommon').classList.add('active');
+  if (name === 'mitish') document.getElementById('tabMitish').classList.add('active');
+  if (name === 'burmalda') document.getElementById('tabBurmalda').classList.add('active');
+  if (name === 'army') document.getElementById('tabArmy').classList.add('active');
+  if (name === 'verx') document.getElementById('tabVerx').classList.add('active');
+  renderSkins();
+}
+function renderSkins() {
+  const grid = document.getElementById('skinsGrid'); grid.innerHTML = '';
+  const collection = COLLECTIONS[currentCollection];
+  collection.skins.forEach(skin => {
+    const owned = data.ownedSkins.includes(skin.id);
+    const isCurrent = data.currentSkin === skin.id;
+    const card = document.createElement('div');
+    card.className = 'skin-card';
+    if (!owned) card.classList.add('locked'); else card.classList.add('owned');
+    if (isCurrent) card.classList.add('selected');
+    card.innerHTML = `
+      <img src="${skin.file}" alt="${skin.name}" onerror="this.src='head.png'">
+      <div class="skin-name">${skin.name}</div>
+      <div class="skin-boost">x${skin.boost} к донатам</div>
+      <div class="skin-status">${owned ? (isCurrent ? '✅ ВЫБРАН' : 'НАЖМИ ЧТОБЫ ВЫБРАТЬ') : '🔒 НЕ ОТКРЫТ'}</div>
+      ${owned && !isCurrent ? `<button class="skin-action" onclick="selectSkin('${skin.id}')">ВЫБРАТЬ</button>` : ''}
+    `;
+    grid.appendChild(card);
+  });
+}
+function selectSkin(id) {
+  data.currentSkin = id; saveData(); updateHeadImage(); renderSkins();
+  const skin = ALL_SKINS.find(s => s.id === id);
+  showToast('✅ Скин выбран: ' + (skin ? skin.name : id));
+  updateArmyMode();
+}
+
+function openRoulettes() {
+  document.getElementById('rouletteCoins').textContent = '💰 ' + data.coins.toLocaleString();
+  renderRoulettes(); showScreen('roulettesScreen');
+}
+function closeRoulettes() { goMenu(); }
+function renderRoulettes() {
+  const list = document.getElementById('roulettesList'); list.innerHTML = '';
+  Object.keys(COLLECTIONS).forEach(key => {
+    const c = COLLECTIONS[key];
+    const canSpin = data.coins >= c.roulettePrice && !spinning;
+    const card = document.createElement('div');
+    card.className = 'roulette-card';
+    card.innerHTML = `
+      <img src="${c.rouletteImg}" alt="${c.name}" onerror="this.src='logo.png'">
+      <div class="r-info">
+        <div class="r-name">${c.name}</div>
+        <div class="r-desc">${c.skins.length} скинов</div>
+        <div class="r-price">💰 ${c.roulettePrice.toLocaleString()}</div>
+        <div class="r-comp">Возврат: ${c.compensation.toLocaleString()}</div>
+      </div>
+      <button ${!canSpin ? 'disabled' : ''} onclick="spinRoulette('${key}')">КРУТИТЬ</button>
+    `;
+    list.appendChild(card);
+  });
+}
+function createSkinsRing(skins) {
+  const ring = document.getElementById('skinsRing');
+  ring.innerHTML = '';
+  const count = skins.length;
+  const radius = 200;
+  skins.forEach((skin, i) => {
+    const angle = (i / count) * 360;
+    const rad = angle * Math.PI / 180;
+    const x = Math.cos(rad) * radius;
+    const y = Math.sin(rad) * radius;
+    const div = document.createElement('div');
+    div.className = 'roulette-skin-orbit';
+    div.style.transform = `translate(${x}px, ${y}px)`;
+    div.innerHTML = `<img src="${skin.file}" alt="${skin.name}" onerror="this.src='head.png'">`;
+    ring.appendChild(div);
+  });
+}
+function spinRoulette(key) {
+  if (spinning) return;
+  const c = COLLECTIONS[key];
+  if (data.coins < c.roulettePrice) { showToast('❌ Не хватает донатов'); return; }
+
+  resetAllSounds();
+  spinning = true;
+  data.coins -= c.roulettePrice;
+  saveData();
+  document.getElementById('rouletteCoins').textContent = '💰 ' + data.coins.toLocaleString();
+
+  const bgMusic = document.getElementById('bgMusic');
+  const rageMusic = document.getElementById('rageMusic');
+  if (bgMusic) bgMusic.pause();
+  if (rageMusic) rageMusic.pause();
+
+  const overlay = document.getElementById('rouletteOverlay');
+  const wheel = document.getElementById('rouletteWheel');
+  const ring = document.getElementById('skinsRing');
+  const result = document.getElementById('rouletteResult');
+  const closeBtn = document.getElementById('rouletteClose');
+
+  createSkinsRing(c.skins);
+  result.classList.remove('show');
+  closeBtn.style.display = 'none';
+  overlay.classList.add('show');
+
+  const spinSound = document.getElementById('spinSound');
+  try {
+    spinSound.pause(); spinSound.currentTime = 0;
+    spinSound.volume = data.sfxVolume;
+    spinSound.loop = true;
+    spinSound.play().catch(() => {});
+  } catch(e) {}
+
+  wheel.classList.remove('spinning');
+  void wheel.offsetWidth;
+  wheel.classList.add('spinning');
+
+  ring.style.animationDuration = '0.5s';
+  setTimeout(() => { ring.style.animationDuration = '3s'; }, 3000);
+  setTimeout(() => { ring.style.animationDuration = '8s'; }, 5000);
+
+  const skin = pickRandomSkin(c.skins);
+  const isNew = !data.ownedSkins.includes(skin.id);
+
+  setTimeout(() => {
+    try { spinSound.pause(); spinSound.currentTime = 0; } catch(e) {}
+    ring.style.animationDuration = '2s';
+
+    if (isNew) {
+      data.ownedSkins.push(skin.id);
+      document.getElementById('resultImg').src = skin.file;
+      document.getElementById('resultName').textContent = skin.name;
+      document.getElementById('resultStatus').textContent = '🎉 НОВЫЙ СКИН!';
+      document.getElementById('resultStatus').style.color = '#4CAF50';
+      document.getElementById('resultComp').textContent = 'Буст: x' + skin.boost;
+      playDonateSfx();
+    } else {
+      data.coins += c.compensation;
+      document.getElementById('resultImg').src = skin.file;
+      document.getElementById('resultName').textContent = skin.name;
+      document.getElementById('resultStatus').textContent = '🔁 ДУБЛИКАТ';
+      document.getElementById('resultStatus').style.color = '#FFD700';
+      document.getElementById('resultComp').textContent = '+' + c.compensation.toLocaleString() + ' 💰 возврат';
+      playDonateSfx();
+    }
+    saveData();
+    document.getElementById('rouletteCoins').textContent = '💰 ' + data.coins.toLocaleString();
+    result.classList.add('show');
+    closeBtn.style.display = 'block';
+    spinning = false;
+    updateUI();
+    checkAchievements();
+  }, 7000);
+}
+function pickRandomSkin(skins) {
+  const total = skins.reduce((s, sk) => s + sk.chance, 0);
+  let r = Math.random() * total;
+  for (const sk of skins) {
+    if (r < sk.chance) return sk;
+    r -= sk.chance;
+  }
+  return skins[skins.length - 1];
+}
+function closeRouletteOverlay() {
+  document.getElementById('rouletteOverlay').classList.remove('show');
+  resetAllSounds();
+  if (gameRunning && !data.bossActive) {
+    const bgMusic = document.getElementById('bgMusic');
+    bgMusic.volume = data.musicVolume;
+    bgMusic.currentTime = 0;
+    bgMusic.play().catch(() => {});
+  }
+  renderRoulettes();
+}
+
+function openAchievements() { renderAchievements(); showScreen('achievementsScreen'); }
+function closeAchievements() { goMenu(); }
+function renderAchievements() {
+  const list = document.getElementById('achievementsList'); list.innerHTML = '';
+  let unlockedCount = 0;
+  ACHIEVEMENTS.forEach(ach => {
+    const unlocked = data[ach.flag] === true;
+    if (unlocked) unlockedCount++;
+    const card = document.createElement('div');
+    card.className = 'achievement-card ' + (unlocked ? 'unlocked' : 'locked');
+    card.innerHTML = `
+      <img src="${ach.img}" alt="${ach.name}" onerror="this.src='head.png'">
+      <div class="ach-info">
+        <div class="ach-name">${ach.name}</div>
+        <div class="ach-desc">${ach.desc}</div>
+        <div class="ach-reward">+${ach.reward.toLocaleString()} 💰</div>
+      </div>
+      <div class="ach-status">${unlocked ? '✅' : '🔒'}</div>
+    `;
+    list.appendChild(card);
+  });
+  document.getElementById('achCount').textContent = unlockedCount + ' / ' + ACHIEVEMENTS.length;
+}
+
+function openSettings() { showScreen('settingsScreen'); }
+function closeSettings() { goMenu(); }
+document.getElementById('musicSlider').addEventListener('input', e => {
+  data.musicVolume = e.target.value / 100;
+  document.getElementById('musicVal').textContent = e.target.value;
+  ['bgMusic','rageMusic','bossMusic','generallMusic','moydidirMusic','sverxMusic'].forEach(id => {
+    const m = document.getElementById(id);
+    if (m) m.volume = data.musicVolume;
+  });
+  saveData();
+});
+document.getElementById('sfxSlider').addEventListener('input', e => {
+  data.sfxVolume = e.target.value / 100;
+  document.getElementById('sfxVal').textContent = e.target.value;
+  const ss = document.getElementById('spinSound');
+  if (ss) ss.volume = data.sfxVolume;
+  saveData();
+});
+function resetProgress() {
+  if (confirm('Сбросить весь прогресс?')) {
+    data = JSON.parse(JSON.stringify(DEFAULT_DATA));
+    saveData(); showToast('🗑 Сброшено'); goMenu();
+  }
+}
+
+let combo = 0, comboTimer = null, rageActive = false, rageTimer = null;
+
+function startGame() {
+  showScreen('gameScreen'); gameRunning = true; combo = 0;
+  clearParticles(); updateUI(); updateHeadImage(); updateRageCircle();
+  updateBossProgress(); updateArmyMode();
+  if (data.bossActive) {
+    const boss = BOSSES[data.currentBoss];
+    if (boss) {
+      document.getElementById('game').classList.add(boss.cssClass);
+      document.getElementById('head').classList.add(boss.cssClass);
+      document.getElementById('bossBar').classList.add('show');
+      document.getElementById('bossText').classList.add('show');
+      document.getElementById('bossText').textContent = '⚔ ' + boss.name + ' ⚔';
+      document.getElementById('bossTitle').textContent = '⚔ ' + boss.name + ' ⚔';
+      document.getElementById('headImg').src = boss.img;
+      updateBossHp();
+      if (boss.id === 'moydidir') startBubbles();
+      if (boss.id === 'sverx') startClouds();
+      const bossMusic = document.getElementById(boss.musicId);
+      if (bossMusic) { bossMusic.volume = data.musicVolume; bossMusic.play().catch(() => {}); }
+    }
+  } else {
+    const music = document.getElementById('bgMusic');
+    if (music.paused) { music.volume = data.musicVolume; music.currentTime = 0; music.play().catch(() => {}); }
+  }
+}
+
+function updateUI() { document.getElementById('coins').textContent = data.coins.toLocaleString(); }
+function getCurrentBoost() {
+  const skin = ALL_SKINS.find(s => s.id === data.currentSkin);
+  let boost = skin ? skin.boost : 1;
+  // Шляпа
+  if (data.currentHat && data.currentHat !== 'none') {
+    const hat = HATS.find(h => h.id === data.currentHat);
+    if (hat) boost += hat.boost;
+  }
+  return boost;
+}
+function updateHeadImage() {
+  const headImg = document.getElementById('headImg');
+  if (data.bossActive) {
+    const boss = BOSSES[data.currentBoss];
+    if (boss) headImg.src = boss.img;
+  } else if (rageActive) {
+    headImg.src = 'head_yarost.png';
+  } else {
+    const skin = ALL_SKINS.find(s => s.id === data.currentSkin);
+    headImg.src = skin ? skin.file : 'head.png';
+  }
+}
+function updateRageCircle() {
+  const circle = document.getElementById('rageCircle');
+  const radius = 240; const circumference = 2 * Math.PI * radius;
+  const progress = rageActive ? 1 : (data.rageProgress / 1000);
+  const dash = circumference * progress;
+  circle.style.strokeDasharray = `${dash} ${circumference}`;
+  if (rageActive) circle.classList.add('active'); else circle.classList.remove('active');
+}
+
+document.getElementById('head').addEventListener('click', (e) => { if (gameRunning) tapHead(e); });
+document.getElementById('head').addEventListener('touchstart', (e) => {
+  if (!gameRunning) return; e.preventDefault(); tapHead(e.touches[0]);
+}, { passive: false });
+
+function tapHead(e) {
+  if (data.bossActive) {
+    const boost = getCurrentBoost();
+    let dmg = data.tapPower * data.multiplier * boost * 10;
+    dmg = Math.floor(dmg);
+    data.coins += dmg; saveData(); damageBoss(); updateUI();
+    const head = document.getElementById('head');
+    head.classList.add('hit'); setTimeout(() => head.classList.remove('hit'), 150);
+    const popup = document.createElement('div');
+    popup.className = 'donate-popup';
+    popup.textContent = '+' + dmg.toLocaleString() + ' 💰';
+    popup.style.left = (e.clientX || window.innerWidth / 2) + 'px';
+    popup.style.top = (e.clientY || window.innerHeight / 2) + 'px';
+    document.body.appendChild(popup); setTimeout(() => popup.remove(), 800);
+    playHitSound();
+    return;
+  }
+  const boost = getCurrentBoost();
+  let dmg = data.tapPower * data.multiplier * boost;
+  if (rageActive) dmg *= 10;
+  dmg = Math.floor(dmg);
+  data.coins += dmg; data.totalTaps++; combo++;
+  data.bossTaps++;
+  if (data.bossTaps >= BOSS_TAPS_NEEDED) spawnBoss();
+  if (!rageActive) {
+    data.rageProgress++;
+    if (data.rageProgress >= 1000) activateRage();
+  }
+  if (combo >= 5) {
+    const bonus = Math.floor(combo / 5) * data.multiplier;
+    data.coins += bonus;
+    const comboEl = document.getElementById('combo');
+    comboEl.textContent = 'x' + combo; comboEl.classList.add('show');
+    clearTimeout(comboTimer);
+    comboTimer = setTimeout(() => { comboEl.classList.remove('show'); combo = 0; }, 1500);
+  }
+  saveData(); updateUI(); updateRageCircle(); checkAchievements(); updateBossProgress();
+  const head = document.getElementById('head');
+  head.classList.add('hit'); setTimeout(() => head.classList.remove('hit'), 150);
+  const popup = document.createElement('div');
+  popup.className = 'donate-popup';
+  popup.textContent = '+' + dmg.toLocaleString() + ' 💰';
+  popup.style.left = (e.clientX || window.innerWidth / 2) + 'px';
+  popup.style.top = (e.clientY || window.innerHeight / 2) + 'px';
+  document.body.appendChild(popup); setTimeout(() => popup.remove(), 800);
+  playHitSound();
+}
+
+function activateRage() {
+  if (data.bossActive) return;
+  rageActive = true; data.rageProgress = 0; saveData();
+  const flash = document.getElementById('rageFlash');
+  flash.classList.add('active'); setTimeout(() => flash.classList.remove('active'), 500);
+  updateHeadImage(); updateRageCircle();
+  document.getElementById('head').classList.add('rage');
+  document.getElementById('rageText').classList.add('show');
+  if (!data.rageAchievementShown) {
+    data.rageAchievementShown = true; data.coins += 5000; saveData();
+    playDonateSfx(); showAchievementPopup('head_yarost.png', 'Достигните ярости', '+5 000 💰'); updateUI();
+  }
+  const music = document.getElementById('bgMusic');
+  const rageMusic = document.getElementById('rageMusic');
+  music.pause();
+  rageMusic.volume = data.musicVolume; rageMusic.currentTime = 0; rageMusic.play().catch(() => {});
+  showToast('⚡ ЯРОСТЬ x10 НА 30 СЕКУНД! ⚡');
+  clearTimeout(rageTimer);
+  rageTimer = setTimeout(() => stopRage(), 30000);
+}
+
+function stopRage() {
+  if (!rageActive) return;
+  rageActive = false;
+  document.getElementById('head').classList.remove('rage');
+  document.getElementById('rageText').classList.remove('show');
+  const music = document.getElementById('bgMusic');
+  const rageMusic = document.getElementById('rageMusic');
+  rageMusic.pause(); rageMusic.currentTime = 0;
+  if (gameRunning && !data.bossActive) {
+    music.volume = data.musicVolume; music.currentTime = 0; music.play().catch(() => {});
+  }
+  updateHeadImage(); updateRageCircle();
+}
+
+function playHitSound() {
+  try {
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    const osc = ctx.createOscillator(); const gain = ctx.createGain();
+    osc.connect(gain); gain.connect(ctx.destination);
+    osc.type = 'square';
+    osc.frequency.setValueAtTime(300, ctx.currentTime);
+    osc.frequency.exponentialRampToValueAtTime(80, ctx.currentTime + 0.1);
+    gain.gain.setValueAtTime(data.sfxVolume * 0.3, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.1);
+    osc.start(); osc.stop(ctx.currentTime + 0.1);
+  } catch(e) {}
+}
+
+function showToast(text) {
+  const toast = document.getElementById('toast');
+  toast.textContent = text; toast.classList.add('show');
+  setTimeout(() => toast.classList.remove('show'), 2500);
+}
+
+document.getElementById('musicSlider').value = data.musicVolume * 100;
+document.getElementById('musicVal').textContent = Math.round(data.musicVolume * 100);
+document.getElementById('sfxSlider').value = data.sfxVolume * 100;
+document.getElementById('sfxVal').textContent = Math.round(data.sfxVolume * 100);
+
+startBoot();
+</script>
+</body>
+</html>
