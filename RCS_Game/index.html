@@ -797,6 +797,23 @@ html, body {
 }
 #game.boss-dedmoroz { background: radial-gradient(circle at center, #3a0a10 0%, #0a1a3a 70%); }
 
+.ny-snow, .ny-garland { display: none; }
+.ny-season .ny-snow, .ny-season .ny-garland { display: block; }
+.ny-snow { position: fixed; inset: 0; pointer-events: none; z-index: 1500; overflow: hidden; }
+.ny-snow span {
+  position: absolute; top: -12px; background: #fff; border-radius: 50%; opacity: 0.9;
+  animation: nySnowFall linear infinite;
+}
+@keyframes nySnowFall { 0% { transform: translateY(0); } 100% { transform: translateY(110vh); } }
+.ny-garland {
+  position: fixed; top: 0; left: 0; right: 0; height: 16px; pointer-events: none; z-index: 1499;
+  background:
+    radial-gradient(circle, #ff3344 3px, transparent 4px) 0 0 / 24px 16px repeat-x,
+    radial-gradient(circle, #ffd700 3px, transparent 4px) 12px 0 / 24px 16px repeat-x;
+  animation: nyBlink 1.2s infinite alternate;
+}
+@keyframes nyBlink { from { opacity: 0.55; } to { opacity: 1; } }
+
 </style>
 </head>
 <body>
@@ -806,6 +823,8 @@ html, body {
   <div class="fog-container" id="fogContainer"></div>
   <div class="clouds-container" id="cloudsContainer"></div>
   <div class="bubbles-container" id="bubblesContainer"></div>
+  <div class="ny-snow" id="nySnow"></div>
+  <div class="ny-garland"></div>
 
   <div class="rage-flash" id="rageFlash"></div>
   <div class="boss-flash" id="bossFlash"></div>
@@ -918,7 +937,7 @@ html, body {
 
   <!-- СЕЗОННЫЙ ПРОПУСК -->
   <div class="screen" id="seasonScreen">
-    <div class="title" style="font-size:32px; color:#FFD700; text-shadow: 0 0 30px rgba(255,215,0,0.8);">СЕЗОН 1: МУРИНО</div>
+    <div class="title" id="seasonTitle" style="font-size:32px; color:#FFD700; text-shadow: 0 0 30px rgba(255,215,0,0.8);">СЕЗОН 1: МУРИНО</div>
     <div style="color:#8888aa; margin-bottom:15px; font-family:Arial; font-size:14px;" id="seasonTimer">Осталось: 30 дней</div>
     <div style="color:#FFD700; margin-bottom:10px; font-family:Arial; font-size:16px;">
       Уровень: <span id="seasonLevel">1</span> / 100
@@ -1050,6 +1069,9 @@ for (let i = 1; i <= SEASON_TOTAL_LEVELS; i++) {
 // === НОВЫЙ ГОД ===
 const NY_START = Date.parse('2027-01-01T00:00:00+03:00');
 function isNewYearStarted() { return Date.now() >= NY_START; }
+const NY_SEASON_END = NY_START + 13 * 24 * 3600 * 1000;
+function isNySeasonActive() { return isNewYearStarted() && Date.now() < NY_SEASON_END; }
+function nySeasonDaysLeft() { return Math.max(0, Math.ceil((NY_SEASON_END - Date.now()) / 86400000)); }
 function nyCountdownText() {
   const diff = NY_START - Date.now();
   if (diff <= 0) return '🎉 С НОВЫМ 2027 ГОДОМ!';
@@ -1065,6 +1087,53 @@ function nyTick() {
   document.querySelectorAll('.ny-countdown').forEach(el => { el.textContent = text; });
   const fixed = document.getElementById('nyCountdownFixed');
   if (fixed && isNewYearStarted()) fixed.style.display = 'none';
+
+  const active = isNySeasonActive();
+  document.body.classList.toggle('ny-season', active);
+
+  if (isNewYearStarted()) {
+    if (!data.nyAchievementShown) {
+      data.nyAchievementShown = true; saveData();
+      playDonateSfx();
+      showAchievementPopup('ny_dedmoroz.png', 'С новым 2027 годом!', '🎄');
+    }
+    if (!data.nyCutsceneShown && !cutscenePlaying) {
+      data.nyCutsceneShown = true; saveData();
+      const bm = document.getElementById('bgMusic');
+      if (bm) bm.pause();
+      playCutscene('ny_cutscene.mp4', () => {
+        if (gameRunning && !data.bossActive && bm) { bm.volume = data.musicVolume; bm.play().catch(() => {}); }
+      });
+    }
+  }
+
+  // Музыка лобби на время сезона
+  const music = document.getElementById('bgMusic');
+  if (music) {
+    const want = active ? 'music_newyear.mp3' : 'music.mp3';
+    if (music.getAttribute('src') !== want) {
+      music.setAttribute('src', want);
+      if (gameRunning && !data.bossActive && !cutscenePlaying) { music.volume = data.musicVolume; music.play().catch(() => {}); }
+    }
+  }
+
+  // Экран сезона
+  const st = document.getElementById('seasonTitle');
+  const stm = document.getElementById('seasonTimer');
+  if (st) st.textContent = active ? 'С НОВЫМ ГОДОМ!' : 'СЕЗОН 1: МУРИНО';
+  if (stm && active) stm.textContent = 'Осталось: ' + nySeasonDaysLeft() + ' дн.';
+
+  // Снег (создаётся один раз)
+  const snow = document.getElementById('nySnow');
+  if (snow && active && !snow.childElementCount) {
+    for (let k = 0; k < 50; k++) {
+      const f = document.createElement('span');
+      const size = 4 + Math.random() * 6;
+      f.style.cssText = 'left:' + (Math.random() * 100) + '%;width:' + size + 'px;height:' + size + 'px;' +
+        'animation-duration:' + (6 + Math.random() * 8) + 's;animation-delay:-' + (Math.random() * 12) + 's;';
+      snow.appendChild(f);
+    }
+  }
 }
 setInterval(nyTick, 1000);
 
@@ -1172,7 +1241,8 @@ const ACHIEVEMENTS = [
   { id: 'hat', name: 'Шляповод', desc: 'Зайдите в магазин шляпок', img: 'head_prodavec.png', reward: 400000, flag: 'hatAchievementShown' },
   { id: 'ludoman', name: 'Лудоман', desc: 'Получите все скины с рулеток', img: 'ruletka_obich.png', reward: 600000, flag: 'ludomanAchievementShown', hidden: true },
   { id: 'checkushka', name: 'Наконец!', desc: 'Провалиться в Зачекушье', img: 'head_chekushka.png', reward: 700000000, flag: 'checkushkaAchievementShown' },
-  { id: 'belka', name: 'Может по второй?', desc: 'Победить Белку', img: 'belocha_head.png', reward: 100000000, flag: 'belkaAchievementShown' }
+  { id: 'belka', name: 'Может по второй?', desc: 'Победить Белку', img: 'belocha_head.png', reward: 100000000, flag: 'belkaAchievementShown' },
+  { id: 'ny2027', name: 'С новым 2027 годом!', desc: 'Дождитесь Нового года', img: 'ny_dedmoroz.png', reward: 0, flag: 'nyAchievementShown' }
 ];
 
 const BOSSES = {
