@@ -2244,6 +2244,7 @@ function startGame() {
       if (boss.id === 'sverx') startClouds();
       if (boss.id === 'fog') startFog();
       if (boss.musicId) {
+        const bgM = document.getElementById('bgMusic'); if (bgM) bgM.pause();
         const bossMusic = document.getElementById(boss.musicId);
         if (bossMusic) { bossMusic.volume = data.musicVolume; bossMusic.play().catch(() => {}); }
       }
@@ -2253,6 +2254,20 @@ function startGame() {
     if (music.paused) { music.volume = data.musicVolume; music.currentTime = 0; music.play().catch(() => {}); }
   }
 }
+
+// Мобильные браузеры запрещают автозапуск без касания: докручиваем музыку при первом жесте
+function ensureMusicPlaying() {
+  if (!gameRunning || cutscenePlaying || spinning) return;
+  if (data.bossActive) {
+    const boss = BOSSES[data.currentBoss];
+    const m = boss && boss.musicId ? document.getElementById(boss.musicId) : null;
+    if (m && m.paused) { m.volume = data.musicVolume; m.play().catch(() => {}); }
+  } else {
+    const bg = document.getElementById('bgMusic');
+    if (bg && bg.paused) { bg.volume = data.musicVolume; bg.play().catch(() => {}); }
+  }
+}
+document.addEventListener('pointerdown', ensureMusicPlaying, { passive: true });
 
 function updateUI() { document.getElementById('coins').textContent = data.coins.toLocaleString(); }
 function getCurrentBoost() {
