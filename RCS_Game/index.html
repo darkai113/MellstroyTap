@@ -785,6 +785,12 @@ html, body {
   .nav-item { min-width: 0; padding: 6px 4px; font-size: 9px; }
   .nav-ico { font-size: 17px; }
 }
+.ny-countdown {
+  font-family: Arial, sans-serif; font-size: 14px; letter-spacing: 1px; color: #fff;
+  background: rgba(20,24,40,0.85); border: 1px solid rgba(255,215,0,0.4);
+  border-radius: 999px; padding: 8px 16px; margin-bottom: 10px; text-align: center;
+}
+
 </style>
 </head>
 <body>
@@ -899,6 +905,7 @@ html, body {
   <div class="screen" id="roulettesScreen">
     <div class="title" style="font-size:28px;">🎰 РУЛЕТКИ</div>
     <div style="color:#FFD700; margin-bottom:10px; font-family:Arial; font-size:18px;" id="rouletteCoins">💰 0</div>
+    <div class="ny-countdown" id="nyCountdown"></div>
     <div class="roulettes-list" id="roulettesList"></div>
     <button class="menu-btn" onclick="closeRoulettes()" style="margin-top:15px;">← НАЗАД</button>
   </div>
@@ -1032,6 +1039,25 @@ for (let i = 1; i <= SEASON_TOTAL_LEVELS; i++) {
   else SEASON_REWARDS.push({ lvl: i, type: 'coins', amount: 1000 * i, name: (1000 * i).toLocaleString() + ' 💰', desc: 'Донаты' });
 }
 
+// === НОВЫЙ ГОД ===
+const NY_START = Date.parse('2027-01-01T00:00:00+03:00');
+function isNewYearStarted() { return Date.now() >= NY_START; }
+function nyCountdownText() {
+  const diff = NY_START - Date.now();
+  if (diff <= 0) return '🎉 С НОВЫМ 2027 ГОДОМ!';
+  const s = Math.floor(diff / 1000);
+  const d = Math.floor(s / 86400);
+  const h = String(Math.floor((s % 86400) / 3600)).padStart(2, '0');
+  const m = String(Math.floor((s % 3600) / 60)).padStart(2, '0');
+  const sec = String(s % 60).padStart(2, '0');
+  return '🎄 До Нового года: ' + d + ' д ' + h + ':' + m + ':' + sec;
+}
+function nyTick() {
+  const el = document.getElementById('nyCountdown');
+  if (el) el.textContent = nyCountdownText();
+}
+setInterval(nyTick, 1000);
+
 const COLLECTIONS = {
   common: {
     name: 'Обычные', rouletteImg: 'ruletka_obich.png', roulettePrice: 250000, compensation: 100000,
@@ -1075,6 +1101,17 @@ const COLLECTIONS = {
       { id: 'head_sverxkotost', name: 'СверхКотость', file: 'head_sverxkotost.png', boost: 7, chance: 25 },
       { id: 'head_german', name: 'Герман', file: 'head_german.png', boost: 8.7, chance: 15 },
       { id: 'head_sverx', name: 'СверхОблачность', file: 'head_sverx.png', boost: 9, chance: 10 }
+    ]
+  },
+  newyear: {
+    name: 'Новый год', rouletteImg: 'ny_roulette.jpg', roulettePrice: 10000000, compensation: 4000000, newYear: true,
+    skins: [
+      { id: 'ny_santa_hat', name: 'Санта', file: 'ny_santa_hat.png', boost: 3, chance: 25 },
+      { id: 'ny_sparkler', name: 'Бенгальский огонь', file: 'ny_sparkler.png', boost: 4, chance: 20 },
+      { id: 'ny_puffer', name: 'В куртке', file: 'ny_puffer.png', boost: 4.5, chance: 20 },
+      { id: 'ny_propeller', name: 'С пропеллером', file: 'ny_propeller.png', boost: 6, chance: 15 },
+      { id: 'ny_blanket', name: 'В пледе', file: 'ny_blanket.png', boost: 5, chance: 15 },
+      { id: 'ny_dedmoroz', name: 'Дед Мороз', file: 'ny_dedmoroz.png', boost: 10, chance: 5 }
     ]
   }
 };
@@ -1772,6 +1809,7 @@ function renderRoulettes() {
   const list = document.getElementById('roulettesList'); list.innerHTML = '';
   Object.keys(COLLECTIONS).forEach(key => {
     const c = COLLECTIONS[key];
+    if (c.newYear && !isNewYearStarted()) return;
     const canSpin = data.coins >= c.roulettePrice && !spinning;
     const card = document.createElement('div');
     card.className = 'roulette-card';
@@ -1807,6 +1845,7 @@ function createSkinsRing(skins) {
 function spinRoulette(key) {
   if (spinning) return;
   const c = COLLECTIONS[key];
+  if (c.newYear && !isNewYearStarted()) { showToast('🔒 Откроется в Новый год'); return; }
   if (data.coins < c.roulettePrice) { showToast('❌ Не хватает донатов'); return; }
 
   resetAllSounds();
@@ -1843,16 +1882,26 @@ function spinRoulette(key) {
   void wheel.offsetWidth;
   wheel.classList.add('spinning');
 
-  ring.style.animationDuration = '0.5s';
-  setTimeout(() => { ring.style.animationDuration = '3s'; }, 3000);
-  setTimeout(() => { ring.style.animationDuration = '8s'; }, 5000);
-
   const skin = pickRandomSkin(c.skins);
   const isNew = !data.ownedSkins.includes(skin.id);
 
+  // Колесо крутится несколько кругов и останавливается ровно на выбранном скине (сверху)
+  const skinIndex = c.skins.indexOf(skin);
+  const landAngle = ((270 - (skinIndex / c.skins.length) * 360) % 360 + 360) % 360;
+  const laps = 5;
+  ring.style.animation = 'none';
+  ring.style.transition = 'none';
+  ring.style.transform = 'rotate(0deg)';
+  void ring.offsetWidth;
+  ring.style.transition = 'transform 1.6s cubic-bezier(0.55, 0, 1, 0.45)';
+  ring.style.transform = 'rotate(' + (laps * 360) + 'deg)';
+  setTimeout(() => {
+    ring.style.transition = 'transform 4s cubic-bezier(0.15, 0.85, 0.2, 1)';
+    ring.style.transform = 'rotate(' + (laps * 360 + 360 + landAngle) + 'deg)';
+  }, 1600);
+
   setTimeout(() => {
     try { spinSound.pause(); spinSound.currentTime = 0; } catch(e) {}
-    ring.style.animationDuration = '2s';
 
     if (isNew) {
       data.ownedSkins.push(skin.id);
@@ -1878,7 +1927,7 @@ function spinRoulette(key) {
     spinning = false;
     updateUI();
     checkAchievements();
-  }, 7000);
+  }, 5700);
 }
 function pickRandomSkin(skins) {
   const total = skins.reduce((s, sk) => s + sk.chance, 0);
