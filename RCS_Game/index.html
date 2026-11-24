@@ -8,6 +8,7 @@
 * { margin: 0; padding: 0; box-sizing: border-box; user-select: none; -webkit-tap-highlight-color: transparent; }
 html, body {
   width: 100%; height: 100%;
+  position: fixed; inset: 0; overscroll-behavior: none;
   overflow: hidden;
   background: #0a0a0f;
   font-family: 'Arial Black', sans-serif;
@@ -17,6 +18,7 @@ html, body {
 #game {
   position: fixed;
   inset: 0;
+  overflow: hidden; touch-action: none;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -208,6 +210,7 @@ html, body {
 }
 .rage-text.show { opacity: 1; }
 @keyframes ragePulse { from { transform: translateX(-50%) scale(1); } to { transform: translateX(-50%) scale(1.08); } }
+.boss-text { display: none !important; }
 .boss-text {
   position: absolute; top: 22%; left: 50%; transform: translateX(-50%);
   font-size: 46px; color: #ff4466;
@@ -1444,9 +1447,8 @@ function startClouds() {
   const container = document.getElementById('cloudsContainer');
   container.innerHTML = '';
   if (cloudsInterval) { clearInterval(cloudsInterval); cloudsInterval = null; }
-  const isSky = SKY_SKINS.includes(data.currentSkin);
-  const isSkyBoss = data.currentBoss === 'sverx';
-  if (isSky || isSkyBoss) {
+  const isSkyBoss = data.bossActive && data.currentBoss === 'sverx';
+  if (isSkyBoss) {
     container.classList.add('show');
     cloudsInterval = setInterval(() => {
       const cloud = document.createElement('div');
@@ -1581,7 +1583,7 @@ function spawnBoss() {
   document.getElementById('bossBar').classList.add('show');
   document.getElementById('bossText').classList.add('show');
   document.getElementById('bossText').textContent = '⚔ ' + boss.name + ' ⚔';
-  document.getElementById('bossTitle').textContent = '⚔ ' + boss.name + ' ⚔';
+  document.getElementById('bossTitle').textContent = boss.name;
   document.getElementById('headImg').src = boss.img;
   updateBossHp();
 
@@ -1697,6 +1699,7 @@ function endBoss(victory) {
 
   stopBubbles();
   stopFog();
+  startClouds();
 
   ['bossMusic', 'generallMusic', 'moydidirMusic', 'sverxMusic', 'belkaMusic'].forEach(id => {
     const m = document.getElementById(id);
@@ -2136,7 +2139,7 @@ function startGame() {
       document.getElementById('bossBar').classList.add('show');
       document.getElementById('bossText').classList.add('show');
       document.getElementById('bossText').textContent = '⚔ ' + boss.name + ' ⚔';
-      document.getElementById('bossTitle').textContent = '⚔ ' + boss.name + ' ⚔';
+      document.getElementById('bossTitle').textContent = boss.name;
       document.getElementById('headImg').src = boss.img;
       updateBossHp();
       if (boss.id === 'moydidir') startBubbles();
@@ -2388,7 +2391,7 @@ function spawnBelka() {
   document.getElementById('bossBar').classList.add('show');
   document.getElementById('bossText').classList.add('show');
   document.getElementById('bossText').textContent = '⚔ ' + boss.name + ' ⚔';
-  document.getElementById('bossTitle').textContent = '⚔ ' + boss.name + ' ⚔';
+  document.getElementById('bossTitle').textContent = boss.name;
   document.getElementById('headImg').src = boss.img;
   updateBossHp();
 
