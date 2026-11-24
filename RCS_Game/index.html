@@ -814,6 +814,24 @@ html, body {
 }
 @keyframes nyBlink { from { opacity: 0.55; } to { opacity: 1; } }
 
+.roulette-overlay {
+  background: radial-gradient(circle at 50% 38%, rgba(255,68,102,0.30) 0%, rgba(20,6,12,0.97) 45%, #05050a 100%);
+  overflow: hidden;
+}
+.roulette-overlay > *:not(.roulette-rays) { position: relative; z-index: 1; }
+.roulette-overlay .roulette-stage { position: relative; }
+.roulette-skins-ring {
+  border-radius: 50%; border: 8px solid #FFD700;
+  box-shadow: 0 0 40px rgba(255,215,0,0.45), inset 0 0 25px rgba(0,0,0,0.5);
+}
+.roulette-rays {
+  position: absolute; left: 50%; top: 50%; width: 900px; height: 900px;
+  margin: -450px 0 0 -450px; border-radius: 50%; pointer-events: none; z-index: 0;
+  background: repeating-conic-gradient(from 0deg, rgba(255,215,0,0.10) 0deg 8deg, transparent 8deg 24deg);
+  animation: raysSpin 14s linear infinite;
+}
+@keyframes raysSpin { to { transform: rotate(360deg); } }
+
 </style>
 </head>
 <body>
@@ -979,6 +997,7 @@ html, body {
 
   <!-- РУЛЕТКА -->
   <div class="roulette-overlay" id="rouletteOverlay">
+    <div class="roulette-rays"></div>
     <div class="roulette-stage">
       <div class="roulette-pointer"></div>
       <div class="roulette-skins-ring" id="skinsRing"></div>
@@ -1917,8 +1936,12 @@ function createSkinsRing(skins) {
   ring.innerHTML = '';
   const count = skins.length;
   const radius = 200;
+  const W = 360 / count;
+  const palette = ['#c81d3a', '#f5c542', '#e9eef7', '#2563eb', '#16a34a', '#7c3aed', '#f97316', '#0ea5e9'];
+  const stops = skins.map((_, i) => palette[i % palette.length] + ' ' + (i * W) + 'deg ' + ((i + 1) * W) + 'deg');
+  ring.style.background = 'conic-gradient(' + stops.join(', ') + ')';
   skins.forEach((skin, i) => {
-    const angle = (i / count) * 360;
+    const angle = i * W + W / 2 - 90;
     const rad = angle * Math.PI / 180;
     const x = Math.cos(rad) * radius;
     const y = Math.sin(rad) * radius;
@@ -1965,16 +1988,14 @@ function spinRoulette(key) {
     spinSound.play().catch(() => {});
   } catch(e) {}
 
-  wheel.classList.remove('spinning');
-  void wheel.offsetWidth;
-  wheel.classList.add('spinning');
 
   const skin = pickRandomSkin(c.skins);
   const isNew = !data.ownedSkins.includes(skin.id);
 
   // Колесо крутится несколько кругов и останавливается ровно на выбранном скине (сверху)
   const skinIndex = c.skins.indexOf(skin);
-  const landAngle = ((270 - (skinIndex / c.skins.length) * 360) % 360 + 360) % 360;
+  const segW = 360 / c.skins.length;
+  const landAngle = ((360 - (skinIndex * segW + segW / 2)) % 360 + 360) % 360;
   const laps = 5;
   ring.style.animation = 'none';
   ring.style.transition = 'none';
