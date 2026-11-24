@@ -741,6 +741,50 @@ html, body {
   .donate-popup { font-size: 30px; }
   .seller img { width: 120px; height: 120px; }
 }
+/* ===== НОВЫЙ СТИЛЬ ===== */
+:root { --accent:#ff4466; --gold:#ffcc33; --panel:rgba(22,24,32,0.92); --line:rgba(255,255,255,0.08); }
+.screen { background: radial-gradient(circle at 50% 0%, #1c1f2a 0%, #0c0d12 70%); }
+.title { letter-spacing: 3px; }
+.menu-btn { background: var(--panel); border: 1px solid var(--line); border-radius: 16px; box-shadow: 0 6px 20px rgba(0,0,0,0.35); color: #f2f2f7; }
+.menu-btn:hover { border-color: rgba(255,68,102,0.6); }
+.top-bar { gap: 10px; }
+.top-bar .stat { background: var(--panel); border: 1px solid var(--line); border-radius: 999px; box-shadow: none; }
+.top-trophy {
+  width: 44px; height: 44px; border-radius: 50%; border: 1px solid var(--line);
+  background: var(--panel); font-size: 20px; cursor: pointer; color: #fff;
+}
+.top-trophy:active { transform: scale(0.95); }
+.bottom-controls { display: none !important; }
+.bottom-nav {
+  position: absolute; bottom: 18px; left: 50%; transform: translateX(-50%);
+  display: flex; gap: 6px; padding: 8px; z-index: 25;
+  background: var(--panel); border: 1px solid var(--line); border-radius: 24px;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.5); max-width: calc(100vw - 24px);
+}
+.nav-item {
+  display: flex; flex-direction: column; align-items: center; gap: 3px;
+  min-width: 58px; padding: 8px 6px; border: 0; border-radius: 16px;
+  background: transparent; color: #b8bccc; font-family: Arial, sans-serif; font-size: 11px; cursor: pointer;
+}
+.nav-item:hover, .nav-item:active { background: rgba(255,68,102,0.15); color: #fff; }
+.nav-ico { font-size: 20px; line-height: 1; }
+.side-collection {
+  position: absolute; right: 18px; top: 50%; transform: translateY(-50%);
+  width: 170px; padding: 14px; z-index: 20; cursor: pointer;
+  background: var(--panel); border: 1px solid var(--line); border-radius: 20px;
+}
+.side-title { font-family: Arial, sans-serif; font-size: 12px; letter-spacing: 2px; color: #b8bccc; margin-bottom: 10px; text-align: center; }
+.side-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.side-grid img {
+  width: 100%; aspect-ratio: 1; object-fit: contain; padding: 4px;
+  background: rgba(255,255,255,0.04); border-radius: 12px;
+}
+.side-more { margin-top: 10px; text-align: center; font-family: Arial, sans-serif; font-size: 12px; color: var(--gold); }
+@media (max-width: 760px) {
+  .side-collection { display: none; }
+  .nav-item { min-width: 0; padding: 6px 4px; font-size: 9px; }
+  .nav-ico { font-size: 17px; }
+}
 </style>
 </head>
 <body>
@@ -804,6 +848,7 @@ html, body {
   <div class="screen" id="gameScreen" style="background:transparent;">
     <div class="top-bar">
       <div class="stat coins">💰 <span id="coins">0</span></div>
+      <button class="top-trophy" onclick="openAchievements()" aria-label="Достижения">🏆</button>
     </div>
     <div class="boss-bar" id="bossBar">
       <div class="boss-title" id="bossTitle">⚔ БОСС ⚔</div>
@@ -830,14 +875,28 @@ html, body {
         <img class="head-img" id="headImg" src="head.png" alt="Голова">
       </div>
     </div>
+    <aside class="side-collection" onclick="openSkins()">
+      <div class="side-title">КОЛЛЕКЦИЯ</div>
+      <div class="side-grid">
+        <img src="head_yarost.png" alt="">
+        <img src="head_boss.png" alt="">
+        <img src="head_artur.png" alt="">
+        <img src="head_bogach.png" alt="">
+      </div>
+      <div class="side-more">Открыть →</div>
+    </aside>
     <div class="boss-progress" id="bossProgress">
       <div class="boss-progress-text">ДО БОССА: <span id="bossProgressText">0 / 3000</span></div>
       <div class="boss-progress-bar"><div class="boss-progress-fill" id="bossProgressFill"></div></div>
     </div>
-    <div class="bottom-controls">
-      <button class="ctrl-btn" onclick="openShop('game')">🛒 МАГАЗИН</button>
-      <button class="ctrl-btn" onclick="goMenu()">🏠 В МЕНЮ</button>
-    </div>
+    <nav class="bottom-nav" aria-label="Навигация">
+      <button class="nav-item" onclick="goMenu()"><span class="nav-ico">🏠</span><span>Меню</span></button>
+      <button class="nav-item" onclick="openHats()"><span class="nav-ico">👒</span><span>Шляпы</span></button>
+      <button class="nav-item" onclick="openSkins()"><span class="nav-ico">🎨</span><span>Скины</span></button>
+      <button class="nav-item" onclick="openRoulettes()"><span class="nav-ico">🎰</span><span>Рулетки</span></button>
+      <button class="nav-item" onclick="openShop('game')"><span class="nav-ico">🛒</span><span>Магазин</span></button>
+      <button class="nav-item" onclick="openSettings()"><span class="nav-ico">⚙</span><span>Настройки</span></button>
+    </nav>
   </div>
 
   <!-- МАГАЗИН -->
