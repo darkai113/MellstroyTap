@@ -807,8 +807,8 @@ html, body {
 }
 
 .ny-fixed {
-  position: fixed; top: 4px; left: 50%; transform: translateX(-50%); z-index: 1000;
-  margin: 0; font-size: 11px; padding: 4px 12px; pointer-events: none; white-space: nowrap;
+  position: fixed; top: 6px; right: 6px; left: auto; transform: none; z-index: 1000;
+  margin: 0; font-size: 10px; letter-spacing: 0; padding: 3px 8px; pointer-events: none; white-space: nowrap;
 }
 #game.boss-dedmoroz { background: radial-gradient(circle at center, #3a0a10 0%, #0a1a3a 70%); }
 
@@ -1141,6 +1141,11 @@ function nyTick() {
   document.querySelectorAll('.ny-countdown').forEach(el => { el.textContent = text; });
   const fixed = document.getElementById('nyCountdownFixed');
   if (fixed && isNewYearStarted()) fixed.style.display = 'none';
+  if (fixed && !isNewYearStarted()) {
+    const diff = Math.max(0, NY_START - Date.now());
+    const s2 = Math.floor(diff / 1000);
+    fixed.textContent = '🎄 ' + Math.floor(s2 / 86400) + 'д ' + String(Math.floor((s2 % 86400) / 3600)).padStart(2, '0') + ':' + String(Math.floor((s2 % 3600) / 60)).padStart(2, '0') + ':' + String(s2 % 60).padStart(2, '0');
+  }
 
   const active = isNySeasonActive();
   document.body.classList.toggle('ny-season', active);
@@ -1426,7 +1431,6 @@ function updateMenu() {}
 
 function goMenu() {
   gameRunning = false; saveData(); clearParticles(); stopRage();
-  if (data.bossActive) endBoss(false);
   updateUI(); startGame();
 }
 function clearParticles() { document.querySelectorAll('.donate-popup').forEach(p => p.remove()); }
@@ -1665,6 +1669,7 @@ function spawnBoss() {
   data.bossActive = true;
   data.currentBoss = randomKey;
   data.bossHp = boss.hp;
+  data.bossTaps = 0;
   saveData();
 
   const flash = document.getElementById('bossFlash');
