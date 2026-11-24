@@ -847,6 +847,27 @@ html, body {
 }
 @keyframes raysSpin { to { transform: rotate(360deg); } }
 
+
+/* Сезон: полоска уровня */
+.season-bar { position: relative; width: 80%; max-width: 500px; height: 22px; background: rgba(20,30,50,0.85); border-radius: 11px; overflow: hidden; margin-bottom: 8px; border: 1px solid rgba(180,220,255,0.5); }
+.season-bar-fill { height: 100%; width: 0%; background: linear-gradient(90deg, #bfe3ff, #ffffff); box-shadow: 0 0 14px rgba(200,235,255,0.8); transition: width 0.4s; background-image: radial-gradient(circle, rgba(60,110,160,0.5) 1.2px, transparent 1.8px); background-size: 9px 9px; }
+.season-bar-text { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-family: Arial, sans-serif; font-weight: 900; font-size: 13px; color: #fff; text-shadow: 0 0 6px #000, 0 0 2px #000; letter-spacing: 2px; pointer-events: none; }
+.season-bar.levelup .season-bar-fill { animation: snowFlash 0.9s ease-out; }
+@keyframes snowFlash { 0% { filter: brightness(1); } 30% { filter: brightness(2.2); } 100% { filter: brightness(1); } }
+/* Ивент: комната */
+.ev-day { font-family: Arial, sans-serif; font-weight: 900; color: #ff8a8a; letter-spacing: 3px; margin: 8px 0 12px; font-size: 16px; }
+.ev-room { position: relative; width: min(92vw, 420px); padding: 18px 16px 22px; border-radius: 18px; background: linear-gradient(180deg, #3a1d12 0%, #22110a 70%, #140a06 100%); border: 1px solid rgba(255,170,90,0.35); box-shadow: inset 0 0 60px rgba(255,120,40,0.15); }
+.ev-mantel { width: 62%; margin: 0 auto 14px; height: 74px; border-radius: 6px 6px 0 0; background: repeating-linear-gradient(90deg, #6b3a22 0 22px, #5a2f1b 22px 24px); box-shadow: 0 6px 16px rgba(0,0,0,0.6), inset 0 -18px 30px rgba(255,90,20,0.35); display: flex; align-items: flex-end; justify-content: center; }
+.ev-fire { font-size: 46px; animation: evFlicker 0.6s infinite alternate; filter: drop-shadow(0 0 16px rgba(255,140,40,0.9)); margin-bottom: 4px; }
+@keyframes evFlicker { from { transform: scale(1) translateY(0); } to { transform: scale(1.08) translateY(-3px); } }
+.ev-tree { text-align: center; font-size: 70px; line-height: 1; filter: drop-shadow(0 0 20px rgba(120,255,160,0.35)); margin-bottom: 8px; }
+.ev-gifts { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; }
+.ev-gift { aspect-ratio: 1; font-size: 26px; border-radius: 10px; border: 1px solid rgba(255,215,0,0.25); background: rgba(40,20,14,0.85); cursor: pointer; color: #fff; }
+.ev-gift:active { transform: scale(0.94); }
+.ev-gift.ready { border-color: #FFD700; box-shadow: 0 0 14px rgba(255,215,0,0.6); animation: evGlow 1s infinite alternate; }
+.ev-gift.done { opacity: 0.35; cursor: default; }
+@keyframes evGlow { from { transform: scale(1); } to { transform: scale(1.06); } }
+.ev-timer { font-family: Arial, sans-serif; color: #FFD700; font-size: 14px; margin-top: 12px; text-align: center; min-height: 18px; }
 </style>
 </head>
 <body>
@@ -874,6 +895,7 @@ html, body {
   <div class="screen" id="gameScreen" style="background:transparent;">
     <div class="top-bar">
       <div class="stat coins">💰 <span id="coins">0</span></div>
+      <button class="top-trophy" onclick="openEvent()" aria-label="Ивент">🎁</button>
       <button class="top-trophy" onclick="openAchievements()" aria-label="Достижения">🏆</button>
     </div>
     <div class="boss-bar" id="bossBar">
@@ -973,15 +995,26 @@ html, body {
   <div class="screen" id="seasonScreen">
     <div class="title" id="seasonTitle" style="font-size:32px; color:#FFD700; text-shadow: 0 0 30px rgba(255,215,0,0.8);">СЕЗОН 1: МУРИНО</div>
     <div style="color:#8888aa; margin-bottom:15px; font-family:Arial; font-size:14px;" id="seasonTimer">Осталось: 30 дней</div>
-    <div style="color:#FFD700; margin-bottom:10px; font-family:Arial; font-size:16px;">
-      Уровень: <span id="seasonLevel">1</span> / 100
-    </div>
-    <div style="width:80%; max-width:500px; height:14px; background:rgba(20,20,30,0.8); border-radius:8px; overflow:hidden; margin-bottom:8px; border:1px solid rgba(255,215,0,0.3);">
-      <div id="seasonXpBar" style="height:100%; width:0%; background:linear-gradient(90deg, #d4a017, #ffcc00); border-radius:8px; transition:width 0.3s; box-shadow:0 0 15px rgba(255,204,0,0.6);"></div>
+    <div class="season-bar" id="seasonBar">
+      <div class="season-bar-fill" id="seasonXpBar"></div>
+      <div class="season-bar-text">УР. <span id="seasonLevel">1</span> / 50</div>
     </div>
     <div style="color:#ccc; margin-bottom:20px; font-family:Arial; font-size:13px;" id="seasonXpText">0 / 100 XP</div>
     <div class="season-rewards" id="seasonRewards"></div>
     <button class="menu-btn" onclick="closeSeason()" style="margin-top:15px;">← НАЗАД</button>
+  </div>
+
+  <!-- НОВОГОДНИЙ ИВЕНТ -->
+  <div class="screen" id="eventScreen">
+    <div class="title" style="font-size:26px; color:#FFD700;">🎄 НОВОГОДНИЙ ИВЕНТ</div>
+    <div class="ev-day" id="eventDay">ДЕНЬ 1 ИЗ 13</div>
+    <div class="ev-room">
+      <div class="ev-mantel"><div class="ev-fire">🔥</div></div>
+      <div class="ev-tree">🎄</div>
+      <div class="ev-gifts" id="eventGifts"></div>
+    </div>
+    <div class="ev-timer" id="eventTimer"></div>
+    <button class="menu-btn" onclick="closeEvent()" style="margin-top:12px;">← НАЗАД</button>
   </div>
 
   <!-- ДОСТИЖЕНИЯ -->
@@ -1067,41 +1100,26 @@ const DEFAULT_DATA = {
   seasonLevel: 1, seasonXp: 0, seasonClaimed: [],
   seasonCutsceneShown: false,
   currentSeason: 1,
-  seasonStartDate: null
+  seasonStartDate: null,
+  eventClaimed: [], eventLastClaim: 0
 };
 
-const SEASON_TOTAL_LEVELS = 100;
+const SEASON_TOTAL_LEVELS = 50;
 const XP_PER_TAP = 1;
 const XP_PER_BOSS = 500;
 const CURRENT_SEASON = 1; // ⚠️ Меняй при старте нового сезона (2, 3, 4...)
 
 const SEASON_REWARDS = [];
+const SEASON_ROULETTES = ['common', 'mitish', 'burmalda', 'army', 'verx'];
 for (let i = 1; i <= SEASON_TOTAL_LEVELS; i++) {
-  if (i === 1) SEASON_REWARDS.push({ lvl: i, type: 'coins', amount: 10000, name: '10 000 💰', desc: 'Донаты' });
-  else if (i === 5) SEASON_REWARDS.push({ lvl: i, type: 'coins', amount: 50000, name: '50 000 💰', desc: 'Донаты' });
-  else if (i === 10) SEASON_REWARDS.push({ lvl: i, type: 'roulette', roulette: 'common', name: 'Рулетка «Обычная»', desc: 'Бесплатная прокрутка' });
-  else if (i === 15) SEASON_REWARDS.push({ lvl: i, type: 'coins', amount: 100000, name: '100 000 💰', desc: 'Донаты' });
-  else if (i === 20) SEASON_REWARDS.push({ lvl: i, type: 'coins', amount: 200000, name: '200 000 💰', desc: 'Донаты' });
-  else if (i === 25) SEASON_REWARDS.push({ lvl: i, type: 'coins', amount: 500000, name: '500 000 💰', desc: 'Донаты' });
-  else if (i === 30) SEASON_REWARDS.push({ lvl: i, type: 'roulette', roulette: 'mitish', name: 'Рулетка «Мытищи»', desc: 'Бесплатная прокрутка' });
-  else if (i === 35) SEASON_REWARDS.push({ lvl: i, type: 'coins', amount: 1000000, name: '1 000 000 💰', desc: 'Донаты' });
-  else if (i === 40) SEASON_REWARDS.push({ lvl: i, type: 'coins', amount: 2000000, name: '2 000 000 💰', desc: 'Донаты' });
-  else if (i === 45) SEASON_REWARDS.push({ lvl: i, type: 'coins', amount: 3000000, name: '3 000 000 💰', desc: 'Донаты' });
-  else if (i === 50) SEASON_REWARDS.push({ lvl: i, type: 'roulette', roulette: 'burmalda', name: 'Рулетка «Бурмалдинцы»', desc: 'Бесплатная прокрутка' });
-  else if (i === 55) SEASON_REWARDS.push({ lvl: i, type: 'coins', amount: 5000000, name: '5 000 000 💰', desc: 'Донаты' });
-  else if (i === 60) SEASON_REWARDS.push({ lvl: i, type: 'coins', amount: 7000000, name: '7 000 000 💰', desc: 'Донаты' });
-  else if (i === 65) SEASON_REWARDS.push({ lvl: i, type: 'coins', amount: 10000000, name: '10 000 000 💰', desc: 'Донаты' });
-  else if (i === 70) SEASON_REWARDS.push({ lvl: i, type: 'roulette', roulette: 'army', name: 'Рулетка «Армия»', desc: 'Бесплатная прокрутка' });
-  else if (i === 75) SEASON_REWARDS.push({ lvl: i, type: 'coins', amount: 15000000, name: '15 000 000 💰', desc: 'Донаты' });
-  else if (i === 80) SEASON_REWARDS.push({ lvl: i, type: 'coins', amount: 20000000, name: '20 000 000 💰', desc: 'Донаты' });
-  else if (i === 85) SEASON_REWARDS.push({ lvl: i, type: 'coins', amount: 30000000, name: '30 000 000 💰', desc: 'Донаты' });
-  else if (i === 90) SEASON_REWARDS.push({ lvl: i, type: 'roulette', roulette: 'verx', name: 'Рулетка «Верхний Новгород»', desc: 'Бесплатная прокрутка' });
-  else if (i === 95) SEASON_REWARDS.push({ lvl: i, type: 'coins', amount: 50000000, name: '50 000 000 💰', desc: 'Донаты' });
-  else if (i === 100) SEASON_REWARDS.push({ lvl: i, type: 'coins', amount: 100000000, name: '100 000 000 💰', desc: 'Финальная награда' });
-  else SEASON_REWARDS.push({ lvl: i, type: 'coins', amount: 1000 * i, name: (1000 * i).toLocaleString() + ' 💰', desc: 'Донаты' });
+  const rewards = [{ type: 'coins', amount: 5000 * i }];
+  if (i % 4 === 0) {
+    rewards.push({ type: 'roulette', roulette: SEASON_ROULETTES[(i / 4 - 1) % SEASON_ROULETTES.length] });
+  }
+  if (i === SEASON_TOTAL_LEVELS) rewards.push({ type: 'coins', amount: 100000000 });
+  SEASON_REWARDS.push({ lvl: i, rewards });
 }
 
-// === НОВЫЙ ГОД ===
 const NY_START = Date.parse('2027-01-01T00:00:00+03:00');
 function isNewYearStarted() { return Date.now() >= NY_START; }
 const NY_SEASON_END = NY_START + 13 * 24 * 3600 * 1000;
@@ -1118,6 +1136,7 @@ function nyCountdownText() {
   return '🎄 До Нового года: ' + d + ' д ' + h + ':' + m + ':' + sec;
 }
 function nyTick() {
+  updateEventTimer();
   const text = nyCountdownText();
   document.querySelectorAll('.ny-countdown').forEach(el => { el.textContent = text; });
   const fixed = document.getElementById('nyCountdownFixed');
@@ -1497,6 +1516,7 @@ function addSeasonXp(amount) {
     data.seasonXp -= getXpForLevel(data.seasonLevel);
     data.seasonLevel++;
     showToast('🏆 Сезон: уровень ' + data.seasonLevel + '!');
+    flashSeasonBar();
   }
   saveData();
   if (currentScreen === 'seasonScreen') renderSeason();
@@ -1509,6 +1529,16 @@ function openSeason() {
   showScreen('seasonScreen');
 }
 function closeSeason() { goMenu(); }
+function rewardName(rw) {
+  if (rw.type === 'coins') return rw.amount.toLocaleString() + ' 💰';
+  const c = COLLECTIONS[rw.roulette];
+  return 'Рулетка «' + (c ? c.name : rw.roulette) + '»';
+}
+function flashSeasonBar() {
+  const bar = document.getElementById('seasonBar');
+  if (!bar) return;
+  bar.classList.remove('levelup'); void bar.offsetWidth; bar.classList.add('levelup');
+}
 function renderSeason() {
   document.getElementById('seasonLevel').textContent = data.seasonLevel;
   const xpNeed = getXpForLevel(data.seasonLevel);
@@ -1531,12 +1561,14 @@ function renderSeason() {
     else if (unlocked) btn = '<button class="r-btn" onclick="claimSeasonReward(' + r.lvl + ')">ЗАБРАТЬ</button>';
     else btn = '<button class="r-btn" disabled>🔒 УР. ' + r.lvl + '</button>';
 
+    const lines = r.rewards.map(rw =>
+      '<div class="r-name">' + rewardName(rw) + '</div>' +
+      '<div class="r-desc">' + (rw.type === 'coins' ? 'Донаты' : 'Бесплатная прокрутка') + '</div>'
+    ).join('');
+
     div.innerHTML =
       '<div class="r-lvl">' + r.lvl + '</div>' +
-      '<div class="r-info">' +
-        '<div class="r-name">' + r.name + '</div>' +
-        '<div class="r-desc">' + r.desc + '</div>' +
-      '</div>' +
+      '<div class="r-info">' + lines + '</div>' +
       btn;
     list.appendChild(div);
   });
@@ -1546,21 +1578,82 @@ function claimSeasonReward(lvl) {
   if (data.seasonLevel < lvl) return;
   const r = SEASON_REWARDS.find(x => x.lvl === lvl);
   if (!r) return;
-
-  if (r.type === 'coins') {
-    data.coins += r.amount;
-    showToast('💰 +' + r.amount.toLocaleString());
-  } else if (r.type === 'roulette') {
-    const c = COLLECTIONS[r.roulette];
-    if (c) {
-      data.coins += c.roulettePrice;
-      showToast('🎰 Бесплатная рулетка: ' + c.name);
+  r.rewards.forEach(rw => {
+    if (rw.type === 'coins') {
+      data.coins += rw.amount;
+      showToast('💰 +' + rw.amount.toLocaleString());
+    } else if (rw.type === 'roulette') {
+      const c = COLLECTIONS[rw.roulette];
+      if (c) { data.coins += c.roulettePrice; showToast('🎰 Бесплатная рулетка: ' + c.name); }
     }
-  }
+  });
   data.seasonClaimed.push(lvl);
   saveData();
   updateUI();
   renderSeason();
+}
+
+// === НОВОГОДНИЙ ИВЕНТ: комната с камином, 13 подарков, один в сутки ===
+const EVENT_GIFTS = 13;
+const EVENT_COOLDOWN = 24 * 3600 * 1000;
+function eventDayNumber() {
+  const d = Math.floor((Date.now() - NY_START) / 86400000) + 1;
+  return Math.min(EVENT_GIFTS, Math.max(1, d));
+}
+function eventCooldownLeft() {
+  return Math.max(0, (data.eventLastClaim || 0) + EVENT_COOLDOWN - Date.now());
+}
+function fmtHMS(ms) {
+  const t = Math.ceil(ms / 1000);
+  const h = String(Math.floor(t / 3600)).padStart(2, '0');
+  const m = String(Math.floor((t % 3600) / 60)).padStart(2, '0');
+  const sec = String(t % 60).padStart(2, '0');
+  return h + ':' + m + ':' + sec;
+}
+function openEvent() {
+  if (!isNewYearStarted()) { showToast('🔒 Откроется в Новый год'); return; }
+  renderEvent();
+  showScreen('eventScreen');
+}
+function closeEvent() { goMenu(); }
+function renderEvent() {
+  const active = isNySeasonActive();
+  document.getElementById('eventDay').textContent = active
+    ? 'ДЕНЬ ' + eventDayNumber() + ' ИЗ ' + EVENT_GIFTS
+    : 'ИВЕНТ ЗАВЕРШЁН';
+  const grid = document.getElementById('eventGifts');
+  grid.innerHTML = '';
+  for (let i = 1; i <= EVENT_GIFTS; i++) {
+    const btn = document.createElement('button');
+    btn.className = 'ev-gift';
+    btn.textContent = data.eventClaimed.includes(i) ? '✅' : '🎁';
+    if (data.eventClaimed.includes(i)) btn.classList.add('done');
+    else if (active && eventCooldownLeft() === 0) btn.classList.add('ready');
+    btn.onclick = () => claimEventGift(i);
+    grid.appendChild(btn);
+  }
+  updateEventTimer();
+}
+function updateEventTimer() {
+  const el = document.getElementById('eventTimer');
+  if (!el || currentScreen !== 'eventScreen') return;
+  if (!isNySeasonActive()) { el.textContent = 'Ивент завершён'; return; }
+  if (data.eventClaimed.length >= EVENT_GIFTS) { el.textContent = 'Все подарки собраны!'; return; }
+  const left = eventCooldownLeft();
+  el.textContent = left > 0 ? 'Следующий подарок через ' + fmtHMS(left) : 'Можно забрать один подарок!';
+}
+function claimEventGift(i) {
+  if (!isNySeasonActive()) { showToast('Ивент завершён'); return; }
+  if (data.eventClaimed.includes(i)) return;
+  const left = eventCooldownLeft();
+  if (left > 0) { showToast('⏳ Следующий подарок через ' + fmtHMS(left)); return; }
+  const amount = 100000 * (i + 2);
+  data.eventClaimed.push(i);
+  data.eventLastClaim = Date.now();
+  data.coins += amount;
+  saveData(); updateUI(); playDonateSfx();
+  showToast('🎁 +' + amount.toLocaleString() + ' 💰');
+  renderEvent();
 }
 
 // === БОССЫ ===
