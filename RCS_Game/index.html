@@ -791,6 +791,12 @@ html, body {
   border-radius: 999px; padding: 8px 16px; margin-bottom: 10px; text-align: center;
 }
 
+.ny-fixed {
+  position: fixed; top: 4px; left: 50%; transform: translateX(-50%); z-index: 1000;
+  margin: 0; font-size: 11px; padding: 4px 12px; pointer-events: none; white-space: nowrap;
+}
+#game.boss-dedmoroz { background: radial-gradient(circle at center, #3a0a10 0%, #0a1a3a 70%); }
+
 </style>
 </head>
 <body>
@@ -949,6 +955,7 @@ html, body {
     <button class="menu-btn" onclick="closeSettings()">← НАЗАД</button>
   </div>
 
+  <div class="ny-countdown ny-fixed" id="nyCountdownFixed"></div>
   <div class="toast" id="toast"></div>
 
   <!-- РУЛЕТКА -->
@@ -986,6 +993,7 @@ html, body {
   <audio id="rotaPodem" src="rota_podem.mp3"></audio>
   <audio id="spinSound" src="roulette-spin.mp3"></audio>
   <audio id="donateSfx" src="donate-sfx.mp3" preload="auto"></audio>
+  <audio id="newyearMusic" src="music_newyear.mp3" loop></audio>
 </div>
 
 <script>
@@ -1053,8 +1061,10 @@ function nyCountdownText() {
   return '🎄 До Нового года: ' + d + ' д ' + h + ':' + m + ':' + sec;
 }
 function nyTick() {
-  const el = document.getElementById('nyCountdown');
-  if (el) el.textContent = nyCountdownText();
+  const text = nyCountdownText();
+  document.querySelectorAll('.ny-countdown').forEach(el => { el.textContent = text; });
+  const fixed = document.getElementById('nyCountdownFixed');
+  if (fixed && isNewYearStarted()) fixed.style.display = 'none';
 }
 setInterval(nyTick, 1000);
 
@@ -1196,6 +1206,12 @@ const BOSSES = {
     musicId: 'belkaMusic', spawnSoundId: null,
     cssClass: 'boss-belka',
     multiplier: 100
+  },
+  dedmoroz: {
+    id: 'dedmoroz', name: 'ДЕД МОРОЗ', img: 'ny_dedmoroz.png',
+    hp: 3000, reward: 20000000, multiplier: 100,
+    musicId: 'newyearMusic', spawnSoundId: null,
+    cssClass: 'boss-dedmoroz', newYear: true
   }
 };
 
@@ -1443,7 +1459,7 @@ function claimSeasonReward(lvl) {
 
 // === БОССЫ ===
 function spawnBoss() {
-  const keys = Object.keys(BOSSES).filter(k => k !== 'belka');
+  const keys = Object.keys(BOSSES).filter(k => k !== 'belka' && (k !== 'dedmoroz' || isNewYearStarted()));
   const randomKey = keys[Math.floor(Math.random() * keys.length)];
   const boss = BOSSES[randomKey];
 
@@ -1570,8 +1586,8 @@ function endBoss(victory) {
   data.currentBoss = null;
   saveData();
 
-  document.getElementById('game').classList.remove('boss-generall', 'boss-moydidir', 'boss-sverx', 'boss-fog', 'boss-belka');
-  document.getElementById('head').classList.remove('boss-generall', 'boss-moydidir', 'boss-sverx', 'boss-fog', 'boss-belka');
+  document.getElementById('game').classList.remove('boss-generall', 'boss-moydidir', 'boss-sverx', 'boss-fog', 'boss-belka', 'boss-dedmoroz');
+  document.getElementById('head').classList.remove('boss-generall', 'boss-moydidir', 'boss-sverx', 'boss-fog', 'boss-belka', 'boss-dedmoroz');
   document.getElementById('bossBar').classList.remove('show');
   document.getElementById('bossText').classList.remove('show');
 
