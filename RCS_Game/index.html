@@ -805,45 +805,6 @@ html, body {
     <div class="boot-logo-fallback" id="bootLogoFallback" style="display:none;">RCS</div>
   </div>
 
-  <!-- МЕНЮ -->
-  <div class="screen" id="menuScreen">
-    <img class="menu-logo" src="logo.png" alt="RCS" onerror="this.style.display='none';">
-    <div class="menu-title-1">MELLSTROY</div>
-    <div class="menu-title-2">TAP</div>
-    <div class="menu-divider">
-      <div class="line"></div>
-      <div class="sword">⚔</div>
-      <div class="line"></div>
-    </div>
-    <div class="menu-subtitle">RED CARD STUDIO</div>
-
-    <div class="menu-content">
-      <div class="menu-column">
-        <div class="menu-buttons">
-          <button class="menu-btn" onclick="startGame()">▶ ИГРАТЬ</button>
-          <button class="menu-btn" onclick="openShop('menu')">🛒 МАГАЗИН</button>
-          <button class="menu-btn" onclick="openHats()">👒 ШЛЯПКИ</button>
-          <button class="menu-btn" onclick="openSkins()">🎨 СКИНЫ</button>
-          <button class="menu-btn" onclick="openRoulettes()">🎰 РУЛЕТКИ</button>
-          <button class="menu-btn" onclick="openSeason()">🏆 СЕЗОН</button>
-          <button class="menu-btn" onclick="openAchievements()">🏆 ДОСТИЖЕНИЯ</button>
-          <button class="menu-btn" onclick="openSettings()">⚙ НАСТРОЙКИ</button>
-          <div style="margin-top:12px; color:#666688; font-family:Arial; font-size:12px; text-align:center;">
-            Рекорд: <span id="menuRecord" style="color:#FFD700;">0</span>
-          </div>
-        </div>
-      </div>
-
-      <div class="menu-column">
-        <div class="event-banner" onclick="showToast('🔔 Скоро!')">
-          <div class="event-title">🔔 СЕЗОН 1: МУРИНО</div>
-          <img src="ivent_1.png" alt="Обновление" onerror="this.style.display='none';">
-          <div class="event-desc">Сезонный пропуск уже здесь!</div>
-        </div>
-      </div>
-    </div>
-  </div>
-
   <!-- ИГРА -->
   <div class="screen" id="gameScreen" style="background:transparent;">
     <div class="top-bar">
@@ -890,7 +851,6 @@ html, body {
       <div class="boss-progress-bar"><div class="boss-progress-fill" id="bossProgressFill"></div></div>
     </div>
     <nav class="bottom-nav" aria-label="Навигация">
-      <button class="nav-item" onclick="goMenu()"><span class="nav-ico">🏠</span><span>Меню</span></button>
       <button class="nav-item" onclick="openHats()"><span class="nav-ico">👒</span><span>Шляпы</span></button>
       <button class="nav-item" onclick="openSkins()"><span class="nav-ico">🎨</span><span>Скины</span></button>
       <button class="nav-item" onclick="openRoulettes()"><span class="nav-ico">🎰</span><span>Рулетки</span></button>
@@ -1256,29 +1216,26 @@ function startBoot() {
         if (started) return;
         started = true;
         playCutscene('seazins1_kascen.mp4', () => {
-          showScreen('menuScreen');
-          updateMenu();
+          startGame();
         });
       };
       const skipIt = () => {
         if (started) return;
         started = true;
         console.warn('⚠️ Катсцена seazins1_kascen.mp4 не найдена — пропускаем');
-        showScreen('menuScreen');
-        updateMenu();
+        startGame();
       };
       
       testVideo.oncanplay = startIt;
       testVideo.onerror = skipIt;
       setTimeout(skipIt, 2000);
     } else {
-      showScreen('menuScreen');
-      updateMenu();
+      startGame();
     }
   }, 3200);
 }
 
-let currentScreen = 'menuScreen';
+let currentScreen = 'gameScreen';
 let gameRunning = false;
 let shopReturnScreen = 'menu';
 
@@ -1286,12 +1243,12 @@ function showScreen(id) {
   document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
   if (id) { document.getElementById(id).classList.add('active'); currentScreen = id; }
 }
-function updateMenu() { document.getElementById('menuRecord').textContent = data.record.toLocaleString(); }
+function updateMenu() {}
 
 function goMenu() {
   gameRunning = false; saveData(); clearParticles(); stopRage();
   if (data.bossActive) endBoss(false);
-  updateUI(); showScreen('menuScreen'); updateMenu();
+  updateUI(); startGame();
 }
 function clearParticles() { document.querySelectorAll('.donate-popup').forEach(p => p.remove()); }
 
