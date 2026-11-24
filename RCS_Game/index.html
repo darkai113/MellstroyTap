@@ -1160,7 +1160,7 @@ const ACHIEVEMENTS = [
   { id: 'bossFight', name: 'Босс Файт', desc: 'Первый раз сразитесь с боссом', img: 'boss_generall.png', reward: 1000000, flag: 'bossFightAchievementShown' },
   { id: 'boss', name: 'Победитель босса', desc: 'Победите босса', img: 'boss_generall.png', reward: 50000, flag: 'bossAchievementShown' },
   { id: 'hat', name: 'Шляповод', desc: 'Зайдите в магазин шляпок', img: 'head_prodavec.png', reward: 400000, flag: 'hatAchievementShown' },
-  { id: 'ludoman', name: 'Лудоман', desc: 'Получите все скины с рулеток', img: 'ruletka_obich.png', reward: 600000, flag: 'ludomanAchievementShown' },
+  { id: 'ludoman', name: 'Лудоман', desc: 'Получите все скины с рулеток', img: 'ruletka_obich.png', reward: 600000, flag: 'ludomanAchievementShown', hidden: true },
   { id: 'checkushka', name: 'Наконец!', desc: 'Провалиться в Зачекушье', img: 'head_chekushka.png', reward: 700000000, flag: 'checkushkaAchievementShown' },
   { id: 'belka', name: 'Может по второй?', desc: 'Победить Белку', img: 'belocha_head.png', reward: 100000000, flag: 'belkaAchievementShown' }
 ];
@@ -1640,7 +1640,8 @@ function checkAchievements() {
     data.billionaireAchievementShown = true; data.coins += 10000000; saveData();
     playDonateSfx(); showAchievementPopup('skolko.png', 'Миллиардер', '+10 000 000 💰'); updateUI();
   }
-  if (!data.ludomanAchievementShown) {
+  // Достижение «Лудоман» скрыто (hidden: true), выдача отключена
+  if (false && !data.ludomanAchievementShown) {
     let allOwned = true;
     Object.keys(COLLECTIONS).forEach(k => {
       COLLECTIONS[k].skins.forEach(skin => {
@@ -1956,6 +1957,7 @@ function renderAchievements() {
   const list = document.getElementById('achievementsList'); list.innerHTML = '';
   let unlockedCount = 0;
   ACHIEVEMENTS.forEach(ach => {
+    if (ach.hidden) return;
     const unlocked = data[ach.flag] === true;
     if (unlocked) unlockedCount++;
     const card = document.createElement('div');
@@ -1970,7 +1972,7 @@ function renderAchievements() {
       '<div class="ach-status">' + (unlocked ? '✅' : '🔒') + '</div>';
     list.appendChild(card);
   });
-  document.getElementById('achCount').textContent = unlockedCount + ' / ' + ACHIEVEMENTS.length;
+  document.getElementById('achCount').textContent = unlockedCount + ' / ' + ACHIEVEMENTS.filter(a => !a.hidden).length;
 }
 
 function openSettings() { showScreen('settingsScreen'); }
