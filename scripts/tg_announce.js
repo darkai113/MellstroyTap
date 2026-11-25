@@ -43,7 +43,9 @@ async function main() {
     return;
   }
 
-  const fresh = all.filter(a => !posted.includes(a.version)).reverse(); // от старых к новым
+  // Объявления с датой «after» не публикуем раньше этого времени
+  const now = Date.now();
+  const fresh = all.filter(a => !posted.includes(a.version) && (!a.after || now >= Date.parse(a.after))).reverse(); // от старых к новым
   if (!fresh.length) { console.log('Новых объявлений нет'); return; }
 
   for (const a of fresh) {

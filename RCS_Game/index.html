@@ -2341,14 +2341,15 @@ function closeRouletteOverlay() {
 
 // Объявления: новые записи добавляй В НАЧАЛО списка. banner — картинка из папки игры (можно убрать).
 const ANNOUNCEMENTS = [
-  { version: '2.1', title: 'Жырики уже в игре!', text: 'Открылась коллекция «Жырики» на вкладке ЖЫРИКИ в рулетке и скинах: 10 новых персонажей с бустом ×6–×15. Редкие Дед и Бабка: каждый повтор поднимает уровень, на 20-м уровне они становятся толстыми и дают ×40.', banner: 'zhyr_banner.jpg' },
+  { version: '2.2', title: 'С Новым годом!', text: 'Таймер закончился, ивент открыт: комната с подарками и камином, Дед Мороз среди боссов и новогодние скины. Заходи и забирай подарки!', banner: 'ny_announce.jpg', after: '2027-01-01T00:00:00+03:00' },
+  { version: '2.1', title: 'Жырики уже в игре!', text: 'Открылась коллекция «Жырики» на вкладке ЖЫРИКИ в рулетке и скинах: 10 новых персонажей с бустом ×6–×15. Редкие Дед и Бабка: уровень растёт от тапов, на 20-м уровне они становятся толстыми и дают ×40.', banner: 'zhyr_banner.jpg' },
   { version: '2.0', title: 'Скоро 1 января!', text: 'Совсем скоро Новый год: откроется ивент с комнатой и камином, 13 подарков по одному в сутки, Дед Мороз среди боссов и новогодние скины. Следи за обновлениями!', banner: 'ny_dedmoroz.png' }
 ];
 function openAnnounce() { renderAnnounce(); showScreen('announceScreen'); }
 function closeAnnounce() { goMenu(); }
 function renderAnnounce() {
   const list = document.getElementById('announceList'); list.innerHTML = '';
-  ANNOUNCEMENTS.forEach(a => {
+  ANNOUNCEMENTS.filter(a => !a.after || Date.now() >= Date.parse(a.after)).forEach(a => {
     const card = document.createElement('div');
     card.className = 'ann-card';
     card.innerHTML =

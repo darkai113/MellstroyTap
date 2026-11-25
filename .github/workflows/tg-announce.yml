@@ -5,6 +5,9 @@ on:
     branches: [main]
     paths: ['RCS_Game/index.html']
   workflow_dispatch:
+  schedule:
+    # 31 декабря в 21:00 UTC = 00:00 по Москве: публикуем объявления, у которых наступила дата
+    - cron: '0 21 31 12 *'
 
 permissions:
   contents: write
