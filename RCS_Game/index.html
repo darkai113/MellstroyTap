@@ -1141,7 +1141,7 @@ const DEFAULT_DATA = {
   currentSeason: 1,
   seasonStartDate: null,
   eventClaimed: [], eventLastClaim: 0,
-  rouletteTickets: {}
+  rouletteTickets: {}, skinLevels: {}
 };
 
 const SEASON_TOTAL_LEVELS = 50;
@@ -1293,7 +1293,9 @@ const COLLECTIONS = {
       { id: 'zhyr_7', name: 'Жырик-Полицейский', file: 'zhyr_7.png', boost: 12, chance: 10 },
       { id: 'zhyr_8', name: 'Жырик-Пожарный', file: 'zhyr_8.png', boost: 13, chance: 10 },
       { id: 'zhyr_9', name: 'Жырик-Ходок', file: 'zhyr_9.png', boost: 14, chance: 10 },
-      { id: 'zhyr_10', name: 'Жырик-Призрак', file: 'zhyr_10.png', boost: 15, chance: 10 }
+      { id: 'zhyr_10', name: 'Жырик-Призрак', file: 'zhyr_10.png', boost: 15, chance: 10 },
+      { id: 'rare_man', name: 'Дед', file: 'rare_man_thin.png', boost: 20, chance: 1, levelable: true, fatFile: 'rare_man_fat.png' },
+      { id: 'rare_woman', name: 'Бабка', file: 'rare_woman_thin.png', boost: 20, chance: 1, levelable: true, fatFile: 'rare_woman_fat.png' }
     ]
   },
   newyear: {
@@ -1335,6 +1337,8 @@ const ALL_SKINS = [
   { id: 'ny_propeller', name: 'С пропеллером', file: 'ny_propeller.png', boost: 8 },
   { id: 'ny_blanket', name: 'В пледе', file: 'ny_blanket.png', boost: 6 },
   { id: 'ny_dedmoroz', name: 'Дед Мороз', file: 'ny_dedmoroz.png', boost: 10 },
+  { id: 'rare_man', name: 'Дед', file: 'rare_man_thin.png', boost: 20, levelable: true, fatFile: 'rare_man_fat.png' },
+  { id: 'rare_woman', name: 'Бабка', file: 'rare_woman_thin.png', boost: 20, levelable: true, fatFile: 'rare_woman_fat.png' },
   { id: 'zhyr_1', name: 'Жырик-Супермен', file: 'zhyr_1.png', boost: 6 },
   { id: 'zhyr_2', name: 'Жырик-Тревожный', file: 'zhyr_2.png', boost: 7 },
   { id: 'zhyr_3', name: 'Жырик-Качок', file: 'zhyr_3.png', boost: 8 },
@@ -1438,6 +1442,7 @@ function loadData() {
       if (!merged.ownedHats) merged.ownedHats = [];
       if (!merged.seasonClaimed) merged.seasonClaimed = [];
       if (!merged.rouletteTickets) merged.rouletteTickets = {};
+      if (!merged.skinLevels) merged.skinLevels = {};
       if (merged.currentSeason === undefined) merged.currentSeason = 0;
       return merged;
     }
@@ -2240,15 +2245,24 @@ function runSpin(key, onDone) {
 
     if (isNew) {
       data.ownedSkins.push(skin.id);
-      document.getElementById('resultImg').src = skin.file;
+      if (skin.levelable) data.skinLevels[skin.id] = 1;
+      document.getElementById('resultImg').src = skinFile(skin);
       document.getElementById('resultName').textContent = skin.name;
       document.getElementById('resultStatus').textContent = '🎉 НОВЫЙ СКИН!';
       document.getElementById('resultStatus').style.color = '#4ade80';
-      document.getElementById('resultComp').textContent = 'Буст: x' + skin.boost;
+      document.getElementById('resultComp').textContent = 'Буст: x' + skinBoost(skin).toFixed(1);
+      playDonateSfx();
+    } else if (skin.levelable && skinLevel(skin.id) < MAX_SKIN_LEVEL) {
+      data.skinLevels[skin.id] = skinLevel(skin.id) + 1;
+      document.getElementById('resultImg').src = skinFile(skin);
+      document.getElementById('resultName').textContent = skin.name;
+      document.getElementById('resultStatus').textContent = '⬆ УРОВЕНЬ ' + skinLevel(skin.id) + ' / ' + MAX_SKIN_LEVEL;
+      document.getElementById('resultStatus').style.color = '#4ade80';
+      document.getElementById('resultComp').textContent = 'Буст: x' + skinBoost(skin).toFixed(1);
       playDonateSfx();
     } else {
       data.coins += c.compensation;
-      document.getElementById('resultImg').src = skin.file;
+      document.getElementById('resultImg').src = skinFile(skin);
       document.getElementById('resultName').textContent = skin.name;
       document.getElementById('resultStatus').textContent = '🔁 ДУБЛИКАТ';
       document.getElementById('resultStatus').style.color = '#FFD700';
@@ -2386,9 +2400,14 @@ function ensureMusicPlaying() {
 document.addEventListener('pointerdown', ensureMusicPlaying, { passive: true });
 
 function updateUI() { document.getElementById('coins').textContent = data.coins.toLocaleString(); }
+const MAX_SKIN_LEVEL = 20;
+function skinLevel(id) { return (data.skinLevels && data.skinLevels[id]) || 1; }
+function levelBoost(lvl) { return 20 + (lvl - 1) * (20 / (MAX_SKIN_LEVEL - 1)); }
+function skinBoost(skin) { return skin.levelable ? levelBoost(skinLevel(skin.id)) : skin.boost; }
+function skinFile(skin) { return (skin.levelable && skinLevel(skin.id) >= MAX_SKIN_LEVEL) ? skin.fatFile : skin.file; }
 function getCurrentBoost() {
   const skin = ALL_SKINS.find(s => s.id === data.currentSkin);
-  let boost = skin ? skin.boost : 1;
+  let boost = skin ? skinBoost(skin) : 1;
   if (data.currentHat && data.currentHat !== 'none') {
     const hat = HATS.find(h => h.id === data.currentHat);
     if (hat) boost += hat.boost;
@@ -2404,7 +2423,7 @@ function updateHeadImage() {
     headImg.src = 'head_yarost.png';
   } else {
     const skin = ALL_SKINS.find(s => s.id === data.currentSkin);
-    headImg.src = skin ? skin.file : 'head.png';
+    headImg.src = skin ? skinFile(skin) : 'head.png';
   }
 }
 function updateRageCircle() {
