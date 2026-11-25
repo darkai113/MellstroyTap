@@ -1,0 +1,30 @@
+name: Telegram announcements
+
+on:
+  push:
+    branches: [main]
+    paths: ['RCS_Game/index.html']
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  announce:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Post new announcements
+        env:
+          TG_BOT_TOKEN: ${{ secrets.TG_BOT_TOKEN }}
+          TG_CHAT: '@RCS_REDCARD'
+        run: node scripts/tg_announce.js
+      - name: Save posted list
+        run: |
+          git config user.name "tg-announce-bot"
+          git config user.email "actions@users.noreply.github.com"
+          git add scripts/tg_posted.json
+          git diff --cached --quiet || (git commit -m "Отмечены опубликованные объявления в Telegram" && git push)
