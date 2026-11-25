@@ -590,6 +590,12 @@ html, body {
 .roulette-card .r-desc { font-size: 12px; color: #8888aa; margin-bottom: 5px; }
 .roulette-card .r-price { font-size: 14px; color: #FFD700; font-weight: 900; margin-bottom: 3px; }
 .roulette-card .r-comp { font-size: 11px; color: #4ade80; margin-bottom: 8px; }
+.roulette-card .r-qty { display: flex; align-items: center; gap: 10px; margin-top: 6px; }
+.roulette-card .r-qty button { width: 34px; height: 34px; border-radius: 8px; border: 1px solid rgba(255,215,0,0.4); background: #1a1a26; color: #fff; font-size: 18px; font-weight: 900; cursor: pointer; }
+.roulette-card .r-qty span { font-size: 18px; font-weight: 900; color: #FFD700; min-width: 30px; text-align: center; }
+.roulette-card .r-actions { display: flex; gap: 8px; margin-top: 8px; flex-wrap: wrap; }
+.roulette-card .r-actions button { flex: 1; min-width: 120px; padding: 10px; border: none; border-radius: 10px; font-weight: 900; font-size: 12px; cursor: pointer; background: linear-gradient(135deg, #d4a017, #ffcc00); color: #000; }
+.roulette-card .r-actions button:disabled { opacity: 0.4; cursor: not-allowed; }
 .roulette-card button {
   width: 100%; background: linear-gradient(135deg, #ff2244, #ff4466);
   color: #fff; border: none; padding: 12px; font-weight: 900;
@@ -1134,7 +1140,8 @@ const DEFAULT_DATA = {
   seasonCutsceneShown: false,
   currentSeason: 1,
   seasonStartDate: null,
-  eventClaimed: [], eventLastClaim: 0
+  eventClaimed: [], eventLastClaim: 0,
+  rouletteTickets: {}
 };
 
 const SEASON_TOTAL_LEVELS = 50;
@@ -1405,6 +1412,7 @@ function loadData() {
       if (!merged.ownedSkins.includes('head')) merged.ownedSkins.push('head');
       if (!merged.ownedHats) merged.ownedHats = [];
       if (!merged.seasonClaimed) merged.seasonClaimed = [];
+      if (!merged.rouletteTickets) merged.rouletteTickets = {};
       if (merged.currentSeason === undefined) merged.currentSeason = 0;
       return merged;
     }
@@ -1627,7 +1635,7 @@ function claimSeasonReward(lvl) {
       showToast('💰 +' + rw.amount.toLocaleString());
     } else if (rw.type === 'roulette') {
       const c = COLLECTIONS[rw.roulette];
-      if (c) { data.coins += c.roulettePrice; showToast('🎰 Бесплатная рулетка: ' + c.name); }
+      if (c) { data.rouletteTickets[rw.roulette] = (data.rouletteTickets[rw.roulette] || 0) + 1; showToast('🎟 Бесплатная прокрутка: ' + c.name); }
     }
   });
   data.seasonClaimed.push(lvl);
@@ -2066,12 +2074,19 @@ function openRoulettes() {
   renderRoulettes(); showScreen('roulettesScreen');
 }
 function closeRoulettes() { goMenu(); }
+const rouletteQty = {};
+function rouletteQtyChange(key, d) {
+  rouletteQty[key] = Math.min(50, Math.max(1, (rouletteQty[key] || 1) + d));
+  renderRoulettes();
+}
 function renderRoulettes() {
   const list = document.getElementById('roulettesList'); list.innerHTML = '';
   Object.keys(COLLECTIONS).forEach(key => {
     const c = COLLECTIONS[key];
     if (c.newYear && !isNewYearStarted()) return;
-    const canSpin = data.coins >= c.roulettePrice && !spinning;
+    const qty = rouletteQty[key] || 1;
+    const tickets = data.rouletteTickets[key] || 0;
+    const cost = c.roulettePrice * qty;
     const card = document.createElement('div');
     card.className = 'roulette-card';
     card.innerHTML =
@@ -2079,12 +2094,34 @@ function renderRoulettes() {
       '<div class="r-info">' +
         '<div class="r-name">' + c.name + '</div>' +
         '<div class="r-desc">' + c.skins.length + ' скинов</div>' +
-        '<div class="r-price">💰 ' + c.roulettePrice.toLocaleString() + '</div>' +
-        '<div class="r-comp">Возврат: ' + c.compensation.toLocaleString() + '</div>' +
-      '</div>' +
-      '<button ' + (!canSpin ? 'disabled' : '') + ' onclick="spinRoulette(\'' + key + '\')">КРУТИТЬ</button>';
+        '<div class="r-price">💰 ' + c.roulettePrice.toLocaleString() + ' за прокрутку</div>' +
+        '<div class="r-comp">Возврат за дубль: ' + c.compensation.toLocaleString() + '</div>' +
+        '<div class="r-desc">🎟 Прокруток: ' + tickets + '</div>' +
+        '<div class="r-qty">' +
+          '<button onclick="rouletteQtyChange(\'' + key + '\', -1)">−</button>' +
+          '<span>' + qty + '</span>' +
+          '<button onclick="rouletteQtyChange(\'' + key + '\', 1)">+</button>' +
+        '</div>' +
+        '<div class="r-actions">' +
+          '<button ' + (spinning ? 'disabled' : '') + ' onclick="buySpins(\'' + key + '\')">КУПИТЬ за ' + cost.toLocaleString() + '</button>' +
+          '<button ' + (tickets <= 0 || spinning ? 'disabled' : '') + ' onclick="openSpins(\'' + key + '\', ' + qty + ')">ОТКРЫТЬ ' + Math.min(qty, tickets) + '</button>' +
+        '</div>' +
+      '</div>';
     list.appendChild(card);
   });
+}
+function buySpins(key) {
+  const c = COLLECTIONS[key];
+  if (c.newYear && !isNewYearStarted()) { showToast('🔒 Откроется в Новый год'); return; }
+  const n = rouletteQty[key] || 1;
+  const cost = c.roulettePrice * n;
+  if (data.coins < cost) { showToast('❌ Не хватает донатов'); return; }
+  data.coins -= cost;
+  data.rouletteTickets[key] = (data.rouletteTickets[key] || 0) + n;
+  saveData(); updateUI();
+  document.getElementById('rouletteCoins').textContent = '💰 ' + data.coins.toLocaleString();
+  showToast('🎟 Куплено прокруток: ' + n);
+  renderRoulettes();
 }
 function createSkinsRing(skins) {
   const ring = document.getElementById('skinsRing');
@@ -2107,16 +2144,26 @@ function createSkinsRing(skins) {
     ring.appendChild(div);
   });
 }
-function spinRoulette(key) {
+function spinRoulette(key) { openSpins(key, 1); }
+function openSpins(key, n) {
   if (spinning) return;
   const c = COLLECTIONS[key];
   if (c.newYear && !isNewYearStarted()) { showToast('🔒 Откроется в Новый год'); return; }
-  if (data.coins < c.roulettePrice) { showToast('❌ Не хватает донатов'); return; }
-
+  if ((data.rouletteTickets[key] || 0) <= 0) { showToast('🎟 Нет прокруток, сначала купи'); return; }
+  let left = Math.min(n, data.rouletteTickets[key]);
+  const next = () => {
+    if (left <= 0 || (data.rouletteTickets[key] || 0) <= 0) return;
+    left--;
+    data.rouletteTickets[key]--;
+    saveData();
+    runSpin(key, (left > 0 && data.rouletteTickets[key] > 0) ? next : null);
+  };
+  next();
+}
+function runSpin(key, onDone) {
+  const c = COLLECTIONS[key];
   resetAllSounds();
   spinning = true;
-  data.coins -= c.roulettePrice;
-  saveData();
   document.getElementById('rouletteCoins').textContent = '💰 ' + data.coins.toLocaleString();
 
   const bgMusic = document.getElementById('bgMusic');
@@ -2186,10 +2233,15 @@ function spinRoulette(key) {
     saveData();
     document.getElementById('rouletteCoins').textContent = '💰 ' + data.coins.toLocaleString();
     result.classList.add('show');
-    closeBtn.style.display = 'block';
     spinning = false;
     updateUI();
     checkAchievements();
+    if (onDone) {
+      setTimeout(() => { result.classList.remove('show'); onDone(); }, 1500);
+    } else {
+      closeBtn.style.display = 'block';
+      renderRoulettes();
+    }
   }, 5700);
 }
 function pickRandomSkin(skins) {
