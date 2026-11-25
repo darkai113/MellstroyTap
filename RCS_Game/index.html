@@ -1700,7 +1700,7 @@ function claimEventGift(i) {
 
 // === БОССЫ ===
 function spawnBoss() {
-  const keys = Object.keys(BOSSES).filter(k => k !== 'belka' && (k !== 'dedmoroz' || isNewYearStarted()));
+  const keys = Object.keys(BOSSES).filter(k => k !== 'belka' && (k !== 'dedmoroz' || isNySeasonActive()));
   const randomKey = keys[Math.floor(Math.random() * keys.length)];
   const boss = BOSSES[randomKey];
 
