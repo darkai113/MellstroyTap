@@ -382,9 +382,9 @@ html, body {
 }
 .shop-item button:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 6px 25px rgba(255,68,102,0.6); }
 .shop-item button:disabled { background: #333344; color: #666688; cursor: not-allowed; box-shadow: none; }
-.collection-tabs { display: flex; gap: 4px; margin-top: 12px; width: 100%; max-width: 700px; justify-content: center; flex-wrap: wrap; }
+.collection-tabs { display: flex; gap: 6px; margin-top: 12px; width: 100%; max-width: 700px; overflow-x: auto; flex-wrap: nowrap; padding-bottom: 4px; -webkit-overflow-scrolling: touch; }
 .collection-tab {
-  flex: 1; min-width: 60px; padding: 10px 5px;
+  flex: 0 0 auto; min-width: 96px; padding: 10px 12px; white-space: nowrap;
   background: rgba(20,20,30,0.75);
   border: 1px solid rgba(255,255,255,0.08); border-radius: 10px;
   color: #8888aa; font-size: 11px; font-weight: 900; letter-spacing: 1px;
@@ -737,7 +737,7 @@ html, body {
   .shop-item .desc { font-size: 11px; }
   .shop-item .price { font-size: 13px; }
   .shop-item button { padding: 10px 16px; font-size: 12px; }
-  .collection-tab { font-size: 9px; padding: 8px 4px; min-width: 50px; }
+  .collection-tab { font-size: 10px; padding: 8px 10px; min-width: 84px; }
   .skins-grid { gap: 10px; max-height: 55vh; }
   .skin-card { padding: 12px; }
   .skin-card img { width: 65px; height: 65px; margin-bottom: 5px; }
@@ -1011,6 +1011,7 @@ html, body {
       <button class="collection-tab" id="tabBurmalda" onclick="switchCollection('burmalda')">БУРМАЛДИНЦЫ</button>
       <button class="collection-tab" id="tabArmy" onclick="switchCollection('army')">АРМИЯ</button>
       <button class="collection-tab" id="tabVerx" onclick="switchCollection('verx')">ВЕРХНИЙ НОВГОРОД</button>
+      <button class="collection-tab" id="tabZhyr" onclick="switchCollection('zhyr')">ЖЫРИКИ</button>
     </div>
     <div class="skins-grid" id="skinsGrid"></div>
     <button class="menu-btn" onclick="closeSkins()" style="margin-top:15px;">← НАЗАД</button>
@@ -2088,6 +2089,9 @@ function switchCollection(name) {
   if (name === 'burmalda') document.getElementById('tabBurmalda').classList.add('active');
   if (name === 'army') document.getElementById('tabArmy').classList.add('active');
   if (name === 'verx') document.getElementById('tabVerx').classList.add('active');
+  if (name === 'zhyr') document.getElementById('tabZhyr').classList.add('active');
+  const act = document.querySelector('.collection-tab.active');
+  if (act) act.scrollIntoView({ inline: 'center', block: 'nearest' });
   renderSkins();
 }
 function renderSkins() {
@@ -2101,9 +2105,9 @@ function renderSkins() {
     if (!owned) card.classList.add('locked'); else card.classList.add('owned');
     if (isCurrent) card.classList.add('selected');
     card.innerHTML =
-      '<img src="' + skin.file + '" alt="' + skin.name + '" onerror="this.src=\'head.png\'">' +
+      '<img src="' + skinFile(skin) + '" alt="' + skin.name + '" onerror="this.src=\'head.png\'">' +
       '<div class="skin-name">' + skin.name + '</div>' +
-      '<div class="skin-boost">x' + skin.boost + ' к донатам</div>' +
+      '<div class="skin-boost">x' + skinBoost(skin).toFixed(skin.levelable ? 1 : 0) + ' к донатам' + (skin.levelable && owned ? ' · ур. ' + skinLevel(skin.id) + '/' + MAX_SKIN_LEVEL : '') + '</div>' +
       '<div class="skin-status">' + (owned ? (isCurrent ? '✅ ВЫБРАН' : 'НАЖМИ ЧТОБЫ ВЫБРАТЬ') : '🔒 НЕ ОТКРЫТ') + '</div>' +
       (owned && !isCurrent ? '<button class="skin-action" onclick="selectSkin(\'' + skin.id + '\')">ВЫБРАТЬ</button>' : '');
     grid.appendChild(card);
@@ -2323,9 +2327,8 @@ function closeRouletteOverlay() {
 
 // Объявления: новые записи добавляй В НАЧАЛО списка. banner — картинка из папки игры (можно убрать).
 const ANNOUNCEMENTS = [
-  { version: '2.1', title: 'Новая коллекция «Жырики»', text: '10 новых скинов с бустом от ×6 до ×15. Редкие Дед и Бабка растут в уровне до ×40. Открой рулетку и собери всех!', banner: 'zhyr_banner.jpg' },
-  { version: '2.0', title: 'Новогодний ивент', text: 'Комната с камином: 13 подарков, по одному в сутки. Дед Мороз появляется среди боссов до 1 марта. Новые скины: Дед и Бабка с уровнями.', banner: 'ny_dedmoroz.png' },
-  { version: '1.0', title: 'Запуск игры', text: 'Добро пожаловать в MELLSTROY TAP! Тапай, качай босса и собирай коллекции.', banner: 'logo_game.png' }
+  { version: '2.1', title: 'Жырики уже в игре!', text: 'Открылась коллекция «Жырики» на вкладке ЖЫРИКИ в рулетке и скинах: 10 новых персонажей с бустом ×6–×15. Редкие Дед и Бабка: каждый повтор поднимает уровень, на 20-м уровне они становятся толстыми и дают ×40.', banner: 'zhyr_banner.jpg' },
+  { version: '2.0', title: 'Скоро 1 января!', text: 'Совсем скоро Новый год: откроется ивент с комнатой и камином, 13 подарков по одному в сутки, Дед Мороз среди боссов и новогодние скины. Следи за обновлениями!', banner: 'ny_dedmoroz.png' }
 ];
 function openAnnounce() { renderAnnounce(); showScreen('announceScreen'); }
 function closeAnnounce() { goMenu(); }
