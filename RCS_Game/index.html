@@ -861,6 +861,11 @@ html, body {
 .season-bar.levelup .season-bar-fill { animation: snowFlash 0.9s ease-out; }
 @keyframes snowFlash { 0% { filter: brightness(1); } 30% { filter: brightness(2.2); } 100% { filter: brightness(1); } }
 /* Объявления */
+.help-box { width: 100%; max-width: 500px; margin-top: 14px; font-family: Arial, sans-serif; text-align: left; }
+.help-hint { color: #aaa; font-size: 14px; line-height: 1.4; margin-bottom: 10px; }
+.help-box textarea { width: 100%; min-height: 110px; box-sizing: border-box; padding: 10px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.15); background: rgba(20,20,30,0.9); color: #fff; font-family: inherit; font-size: 15px; resize: vertical; }
+.help-file { display: inline-block; margin-top: 10px; padding: 10px 14px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.2); color: #ccc; font-size: 13px; letter-spacing: 1px; cursor: pointer; }
+.help-preview { display: block; max-width: 100%; max-height: 180px; margin-top: 10px; border-radius: 10px; }
 .announce-list { width: 100%; max-width: 600px; max-height: 65vh; overflow-y: auto; margin-top: 14px; padding: 4px; }
 .ann-card { border-radius: 16px; overflow: hidden; background: rgba(20,20,30,0.92); border: 1px solid rgba(255,215,0,0.25); margin-bottom: 14px; }
 .ann-banner { width: 100%; aspect-ratio: 16 / 9; background: linear-gradient(135deg, #3a0a18, #0a0a18); display: flex; align-items: center; justify-content: center; }
@@ -1074,6 +1079,20 @@ html, body {
     <button class="menu-btn" onclick="closeAnnounce()" style="margin-top:12px;">← НАЗАД</button>
   </div>
 
+  <!-- ПОМОЩЬ -->
+  <div class="screen" id="helpScreen">
+    <div class="title" style="font-size:28px;">🆘 ПОМОЩЬ</div>
+    <div class="help-box">
+      <div class="help-hint">Опиши, что пошло не так: что делал и что произошло. Можно приложить скриншот.</div>
+      <textarea id="helpText" maxlength="1000" placeholder="Например: после боя с боссом пропала музыка"></textarea>
+      <label class="help-file" for="helpFile">📎 ПРИКРЕПИТЬ СКРИНШОТ</label>
+      <input type="file" id="helpFile" accept="image/*" style="display:none">
+      <img id="helpPreview" class="help-preview" alt="" style="display:none">
+      <button class="menu-btn" id="helpSend" onclick="sendHelp()" style="margin-top:12px; border-color: rgba(74,222,128,0.6); color: #4ade80;">📨 ОТПРАВИТЬ</button>
+    </div>
+    <button class="menu-btn" onclick="closeHelp()" style="margin-top:12px;">← НАЗАД</button>
+  </div>
+
   <!-- ДОСТИЖЕНИЯ -->
   <div class="screen" id="achievementsScreen">
     <div class="title" style="font-size:28px;">🏆 ДОСТИЖЕНИЯ</div>
@@ -1094,6 +1113,7 @@ html, body {
       <input type="range" id="sfxSlider" min="0" max="100" value="70">
     </div>
     <button class="menu-btn" onclick="testSfx()" style="margin-top:10px; border-color: rgba(255,215,0,0.5); color: #FFD700;">🔊 ПРОВЕРИТЬ ЗВУК</button>
+    <button class="menu-btn" onclick="openHelp()" style="margin-top:10px; border-color: rgba(120,200,255,0.5); color: #9fd8ff;">🆘 ПОМОЩЬ</button>
     <button class="menu-btn" onclick="resetProgress()" style="margin-top:15px;">🗑 СБРОСИТЬ</button>
     <button class="menu-btn" onclick="closeSettings()">← НАЗАД</button>
   </div>
@@ -2365,6 +2385,68 @@ function renderAchievements() {
 }
 
 function openSettings() { showScreen('settingsScreen'); }
+
+// ---- Помощь / баг-репорты ----
+// Сюда вставляется адрес веб-приложения Apps Script (см. scripts/report_bot.gs). Пока пусто, кнопка просто сообщает, что помощь не подключена.
+const REPORT_URL = '';
+const REPORT_COOLDOWN_MS = 60 * 1000;
+let helpImageData = '';
+function openHelp() {
+  document.getElementById('helpText').value = '';
+  helpImageData = '';
+  const prev = document.getElementById('helpPreview');
+  prev.style.display = 'none'; prev.removeAttribute('src');
+  document.getElementById('helpFile').value = '';
+  showScreen('helpScreen');
+}
+function closeHelp() { showScreen('settingsScreen'); }
+document.getElementById('helpFile').addEventListener('change', e => {
+  const file = e.target.files && e.target.files[0];
+  if (!file) { helpImageData = ''; return; }
+  const img = new Image();
+  const url = URL.createObjectURL(file);
+  img.onload = () => {
+    const scale = Math.min(1, 900 / img.width);
+    const c = document.createElement('canvas');
+    c.width = Math.round(img.width * scale); c.height = Math.round(img.height * scale);
+    c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+    helpImageData = c.toDataURL('image/jpeg', 0.7);
+    const prev = document.getElementById('helpPreview');
+    prev.src = helpImageData; prev.style.display = 'block';
+    URL.revokeObjectURL(url);
+  };
+  img.onerror = () => { showToast('Не удалось открыть картинку'); helpImageData = ''; };
+  img.src = url;
+});
+async function sendHelp() {
+  const text = document.getElementById('helpText').value.trim();
+  if (text.length < 5) { showToast('Опиши проблему хотя бы в паре слов'); return; }
+  if (!REPORT_URL) { showToast('Помощь пока не подключена'); return; }
+  let last = 0;
+  try { last = Number(localStorage.getItem('rcs_report_last') || 0); } catch (e) {}
+  if (Date.now() - last < REPORT_COOLDOWN_MS) { showToast('Подожди минуту перед следующим сообщением'); return; }
+  const btn = document.getElementById('helpSend');
+  btn.disabled = true;
+  const payload = {
+    text: text,
+    image: helpImageData,
+    version: ANNOUNCEMENTS[0] ? ANNOUNCEMENTS[0].version : '',
+    screen: currentScreen,
+    ua: navigator.userAgent.slice(0, 200),
+    ts: new Date().toISOString()
+  };
+  try {
+    // no-cors: Apps Script отвечает без CORS, поэтому просто отправляем запрос
+    await fetch(REPORT_URL, { method: 'POST', mode: 'no-cors', headers: { 'Content-Type': 'text/plain' }, body: JSON.stringify(payload) });
+    try { localStorage.setItem('rcs_report_last', String(Date.now())); } catch (e) {}
+    showToast('✅ Отправлено, спасибо!');
+    closeHelp();
+  } catch (e) {
+    showToast('Не получилось отправить, попробуй позже');
+  } finally {
+    btn.disabled = false;
+  }
+}
 function closeSettings() { goMenu(); }
 document.getElementById('musicSlider').addEventListener('input', e => {
   data.musicVolume = e.target.value / 100;
