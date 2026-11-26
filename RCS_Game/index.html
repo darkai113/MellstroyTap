@@ -1048,7 +1048,7 @@ html, body {
     <div style="color:#8888aa; margin-bottom:15px; font-family:Arial; font-size:14px;" id="seasonTimer">Осталось: 30 дней</div>
     <div class="season-bar" id="seasonBar">
       <div class="season-bar-fill" id="seasonXpBar"></div>
-      <div class="season-bar-text">УР. <span id="seasonLevel">1</span> / 50</div>
+      <div class="season-bar-text">УР. <span id="seasonLevel">1</span> / 100</div>
     </div>
     <div style="color:#ccc; margin-bottom:20px; font-family:Arial; font-size:13px;" id="seasonXpText">0 / 100 XP</div>
     <div class="season-rewards" id="seasonRewards"></div>
@@ -1208,7 +1208,7 @@ const DEFAULT_DATA = {
   rouletteTickets: {}, skinLevels: {}, skinXp: {}
 };
 
-const SEASON_TOTAL_LEVELS = 50;
+const SEASON_TOTAL_LEVELS = 100;
 const XP_PER_TAP = 1;
 const XP_PER_BOSS = 500;
 const CURRENT_SEASON = 1; // ⚠️ Меняй при старте нового сезона (2, 3, 4...)
@@ -1218,7 +1218,9 @@ const SEASON_ROULETTES = ['common', 'mitish', 'burmalda', 'army', 'verx'];
 for (let i = 1; i <= SEASON_TOTAL_LEVELS; i++) {
   const rewards = [{ type: 'coins', amount: 5000 * i }];
   if (i % 4 === 0) {
-    rewards.push({ type: 'roulette', roulette: SEASON_ROULETTES[(i / 4 - 1) % SEASON_ROULETTES.length] });
+    const roul = SEASON_ROULETTES[(i / 4 - 1) % SEASON_ROULETTES.length];
+    rewards.push({ type: 'roulette', roulette: roul });
+    rewards.push({ type: 'roulette', roulette: roul });
   }
   if (i === SEASON_TOTAL_LEVELS) rewards.push({ type: 'coins', amount: 100000000 });
   SEASON_REWARDS.push({ lvl: i, rewards });
@@ -2059,8 +2061,6 @@ window.addEventListener('keyup', e => {
 function playShopIntro(done) {
   const W = 960, H = 540, GROUND = 400, PIX_GAME = 3;
   const DED_X = 760, DOOR_EXIT_X = 95;
-  const AVX = W / 2, AVY = H / 2, VW = 150, VH = 110;
-  const ADOOR = { x: AVX - 38, y: AVY - 80, w: 76, h: 170 };
   const cv = document.getElementById('shopIntroCanvas');
   cv.width = W; cv.height = H;
   const ctx = cv.getContext('2d');
@@ -2077,34 +2077,9 @@ function playShopIntro(done) {
   const talkBtn = document.getElementById('shopTalk');
   const dialog = document.getElementById('shopDialog');
 
-  let phase = 'anim';
+  let phase = 'game';
   let t0 = 0, gameStart = 0, lastNow = 0;
   const player = { x: 150, dir: 1, walk: 0 };
-
-  // ---- фаза 1: переулок от первого лица ----
-  function alleyDoorRect(z) { return { x: AVX + (ADOOR.x - AVX) * z, y: AVY + (ADOOR.y - AVY) * z, w: ADOOR.w * z, h: ADOOR.h * z }; }
-  function drawAlley(z, p) {
-    const sky = octx.createLinearGradient(0, 0, 0, AVY);
-    sky.addColorStop(0, '#03040a'); sky.addColorStop(1, '#0d1222');
-    octx.fillStyle = sky; octx.fillRect(0, 0, W, H);
-    octx.fillStyle = '#17161d';
-    octx.beginPath(); octx.moveTo(0, 0); octx.lineTo(AVX - VW, AVY - VH); octx.lineTo(AVX - VW, AVY + VH); octx.lineTo(0, H); octx.closePath(); octx.fill();
-    octx.fillStyle = '#131219';
-    octx.beginPath(); octx.moveTo(W, 0); octx.lineTo(AVX + VW, AVY - VH); octx.lineTo(AVX + VW, AVY + VH); octx.lineTo(W, H); octx.closePath(); octx.fill();
-    octx.fillStyle = '#0a0a0e';
-    octx.beginPath(); octx.moveTo(0, H); octx.lineTo(AVX - VW, AVY + VH); octx.lineTo(AVX + VW, AVY + VH); octx.lineTo(W, H); octx.closePath(); octx.fill();
-    octx.fillStyle = '#121118'; octx.fillRect(AVX - VW, AVY - VH, VW * 2, VH * 2);
-    const d = alleyDoorRect(z), half = d.w / 2;
-    if (p > 0) { octx.fillStyle = '#000'; octx.fillRect(d.x, d.y, d.w, d.h); }
-    const panel = x => {
-      octx.fillStyle = '#1e1f26'; octx.fillRect(x, d.y, half, d.h);
-      octx.strokeStyle = '#2a2b33'; octx.lineWidth = Math.max(2, 3 * z);
-      octx.strokeRect(x + half * 0.15, d.y + d.h * 0.08, half * 0.7, d.h * 0.36);
-      octx.strokeRect(x + half * 0.15, d.y + d.h * 0.52, half * 0.7, d.h * 0.4);
-    };
-    panel(d.x - p * half * 1.1);
-    panel(d.x + half + p * half * 1.1);
-  }
 
   // ---- фаза 2: комната магазина сбоку ----
   function drawRoom() {
@@ -2158,28 +2133,13 @@ function playShopIntro(done) {
     ctrl.style.display = 'block';
     shopSkipFn = null;
   }
-  shopSkipFn = () => { if (phase === 'anim') startGame(performance.now()); };
-
   shopIntroDone = done; shopIntroActive = true;
   document.getElementById('shopIntro').style.display = 'block';
+  startGame(performance.now());
 
   const loop = now => {
     if (!shopIntroActive) return;
     if (!t0) t0 = now;
-    if (phase === 'anim') {
-      const t = now - t0;
-      if (t >= 3000) { startGame(now); }
-      else {
-        const k = clamp01((t - 700) / 1900);
-        const z = 1 + 2.5 * ease(k);
-        const px = 1 + 11 * ease(k);
-        const p = ease(clamp01((t - 2200) / 700));
-        octx.clearRect(0, 0, W, H);
-        drawAlley(z, p);
-        present(Math.round(px));
-        fade(t < 700 ? 1 - ease(t / 700) : 0);
-      }
-    }
     if (phase === 'game') {
       const dt = Math.min(0.05, (now - lastNow) / 1000);
       lastNow = now;
