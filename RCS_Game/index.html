@@ -2048,9 +2048,26 @@ let shopIntroActive = false;
 let shopIntroDone = null;
 let shopSkipFn = null;
 const shopKeys = { left: false, right: false };
+// Комната Деда и подвал — альбомная ориентация: пробуем зафиксировать поворот, если браузер позволяет
+function lockLandscape() {
+  try {
+    const el = document.documentElement;
+    if (el.requestFullscreen && !document.fullscreenElement) el.requestFullscreen().catch(() => {});
+    if (screen.orientation && screen.orientation.lock) screen.orientation.lock('landscape').catch(() => {});
+  } catch (e) {}
+}
+function unlockOrientation() {
+  try {
+    if (screen.orientation && screen.orientation.unlock) screen.orientation.unlock();
+    if (document.fullscreenElement && document.exitFullscreen) document.exitFullscreen().catch(() => {});
+  } catch (e) {}
+}
 function skipShopIntro() { if (shopIntroActive && shopSkipFn) shopSkipFn(); }
+let keepLandscape = false;
 function finishShopIntro() {
   cancelAnimationFrame(shopIntroRaf); shopIntroRaf = 0; shopIntroActive = false; shopSkipFn = null;
+  if (!keepLandscape) unlockOrientation();
+  keepLandscape = false;
   shopKeys.left = false; shopKeys.right = false;
   document.getElementById('shopIntro').style.display = 'none';
   document.getElementById('shopDialog').style.display = 'none';
@@ -2061,6 +2078,7 @@ function finishShopIntro() {
 // Вход в комнату из ивента: открывается сцена сбоку, по выходу остаёмся на экране ивента
 function enterEventRoom() {
   if (shopIntroActive) return;
+  lockLandscape();
   playShopIntro(() => {});
 }
 // ---- Подвал: фонарик, щиток, нож и бой с двумя ФОГами (5 ур.) ----
@@ -2173,6 +2191,7 @@ function startCellarQuest(done) {
   }
   function finish() {
     cancelAnimationFrame(cellarRaf); cellarRaf = 0; cellarActive = false;
+    unlockOrientation();
     overlay.style.display = 'none';
     window.removeEventListener('keydown', onKey); window.removeEventListener('keyup', onKeyUp);
     cellarKeys.left = false; cellarKeys.right = false;
@@ -2193,6 +2212,7 @@ function startCellarQuest(done) {
   st.onAct = () => { const a = currentAction(); if (a) a.run(); };
 
   cellarActive = true;
+  lockLandscape();
   overlay.style.display = 'block';
   let last = performance.now();
   const loop = now => {
@@ -2214,6 +2234,7 @@ function startCellarQuest(done) {
 }
 
 function goCellarFromDed() {
+  keepLandscape = true;
   finishShopIntro();
   startCellarQuest(() => {});
 }
