@@ -866,6 +866,9 @@ html, body {
 .help-box textarea { width: 100%; min-height: 110px; box-sizing: border-box; padding: 10px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.15); background: rgba(20,20,30,0.9); color: #fff; font-family: inherit; font-size: 15px; resize: vertical; }
 .help-file { display: inline-block; margin-top: 10px; padding: 10px 14px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.2); color: #ccc; font-size: 13px; letter-spacing: 1px; cursor: pointer; }
 .help-preview { display: block; max-width: 100%; max-height: 180px; margin-top: 10px; border-radius: 10px; }
+.shop-intro { position: fixed; inset: 0; z-index: 9000; background: #000; display: none; }
+.shop-intro canvas { width: 100%; height: 100%; object-fit: cover; display: block; }
+.shop-intro-skip { position: absolute; left: 0; right: 0; bottom: 14px; text-align: center; color: #777; font-size: 12px; font-family: Arial, sans-serif; pointer-events: none; }
 .announce-list { width: 100%; max-width: 600px; max-height: 65vh; overflow-y: auto; margin-top: 14px; padding: 4px; }
 .ann-card { border-radius: 16px; overflow: hidden; background: rgba(20,20,30,0.92); border: 1px solid rgba(255,215,0,0.25); margin-bottom: 14px; }
 .ann-banner { width: 100%; aspect-ratio: 16 / 9; background: linear-gradient(135deg, #3a0a18, #0a0a18); display: flex; align-items: center; justify-content: center; }
@@ -1077,6 +1080,12 @@ html, body {
     <div class="title" style="font-size:28px;">📢 ОБЪЯВЛЕНИЯ</div>
     <div class="announce-list" id="announceList"></div>
     <button class="menu-btn" onclick="closeAnnounce()" style="margin-top:12px;">← НАЗАД</button>
+  </div>
+
+  <!-- ИНТРО МАГАЗИНА: дверь и Дед -->
+  <div class="shop-intro" id="shopIntro" onclick="skipShopIntro()">
+    <canvas id="shopIntroCanvas"></canvas>
+    <div class="shop-intro-skip">нажми, чтобы пропустить</div>
   </div>
 
   <!-- ПОМОЩЬ -->
@@ -1997,7 +2006,117 @@ function checkAchievements() {
   }
 }
 
+// ---- Интро магазина: чёрный экран, пиксели от первого лица, дверь, Дед внутри ----
+const SHOP_INTRO_MS = 5200;
+let shopIntroRaf = 0;
+let shopIntroDone = null;
+function skipShopIntro() { if (shopIntroRaf) finishShopIntro(); }
+function finishShopIntro() {
+  cancelAnimationFrame(shopIntroRaf); shopIntroRaf = 0;
+  document.getElementById('shopIntro').style.display = 'none';
+  const done = shopIntroDone; shopIntroDone = null;
+  if (done) done();
+}
+function playShopIntro(done) {
+  const W = 390, H = 844, VX = 195, VY = 420;
+  const DOOR = { x: 120, y: 230, w: 150, h: 300 };
+  const cv = document.getElementById('shopIntroCanvas');
+  cv.width = W; cv.height = H;
+  const ctx = cv.getContext('2d');
+  const off = document.createElement('canvas'); off.width = W; off.height = H;
+  const octx = off.getContext('2d');
+  const small = document.createElement('canvas');
+  const dedImg = new Image(); dedImg.src = 'rare_man_thin.png';
+  const clamp01 = v => Math.max(0, Math.min(1, v));
+  const ease = t => t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
+
+  const doorRect = z => ({ x: VX + (DOOR.x - VX) * z, y: VY + (DOOR.y - VY) * z, w: DOOR.w * z, h: DOOR.h * z });
+  function drawDoors(z, p) {
+    const d = doorRect(z), half = d.w / 2;
+    const panel = x => {
+      octx.fillStyle = '#4a2f1a'; octx.fillRect(x, d.y, half, d.h);
+      octx.strokeStyle = '#2b1a0e'; octx.lineWidth = Math.max(2, 4 * z);
+      octx.strokeRect(x + half * 0.12, d.y + d.h * 0.08, half * 0.76, d.h * 0.36);
+      octx.strokeRect(x + half * 0.12, d.y + d.h * 0.52, half * 0.76, d.h * 0.40);
+    };
+    const leftX = d.x - p * half * 1.1, rightX = d.x + half + p * half * 1.1;
+    panel(leftX); panel(rightX);
+    octx.fillStyle = '#d4a017';
+    octx.beginPath(); octx.arc(rightX + half * 0.72, d.y + d.h * 0.52, Math.max(2, d.w * 0.045), 0, Math.PI * 2); octx.fill();
+  }
+  function drawHall(z) {
+    const g = octx.createLinearGradient(0, 0, 0, H);
+    g.addColorStop(0, '#1a120c'); g.addColorStop(0.6, '#2a1c12'); g.addColorStop(1, '#0e0905');
+    octx.fillStyle = g; octx.fillRect(0, 0, W, H);
+    octx.fillStyle = '#3a2716'; octx.fillRect(0, 540, W, H - 540);
+    drawDoors(z, 0);
+  }
+  function drawInterior() {
+    const g = octx.createLinearGradient(0, 0, 0, H);
+    g.addColorStop(0, '#3a2412'); g.addColorStop(1, '#1e120a');
+    octx.fillStyle = g; octx.fillRect(0, 0, W, H);
+    const cols = ['#c0392b', '#2980b9', '#27ae60', '#f1c40f', '#8e44ad'];
+    for (let r = 0; r < 3; r++) {
+      const y = 120 + r * 110;
+      octx.fillStyle = '#5a3a1f'; octx.fillRect(40, y + 80, 310, 10);
+      for (let i = 0; i < 8; i++) { octx.fillStyle = cols[(i + r) % cols.length]; octx.fillRect(50 + i * 36, y + 30, 26, 50); }
+    }
+    octx.fillStyle = 'rgba(255,200,120,0.22)';
+    octx.beginPath(); octx.arc(W / 2, 60, 140, 0, Math.PI * 2); octx.fill();
+    if (dedImg.complete && dedImg.naturalWidth) octx.drawImage(dedImg, (W - 300) / 2, 300, 300, 300);
+    octx.fillStyle = '#6b4423'; octx.fillRect(0, 600, W, 90);
+    octx.fillStyle = '#8a5a2e'; octx.fillRect(0, 598, W, 10);
+    octx.fillStyle = '#ffd700'; octx.font = 'bold 26px Arial'; octx.textAlign = 'center';
+    octx.fillText('🛒 МАГАЗИН', W / 2, 90);
+  }
+  function present(px) {
+    ctx.imageSmoothingEnabled = false;
+    if (px <= 1) { ctx.drawImage(off, 0, 0, W, H); return; }
+    const sw = Math.max(1, Math.round(W / px)), sh = Math.max(1, Math.round(H / px));
+    small.width = sw; small.height = sh;
+    const sctx = small.getContext('2d'); sctx.imageSmoothingEnabled = false;
+    sctx.drawImage(off, 0, 0, sw, sh);
+    ctx.drawImage(small, 0, 0, sw, sh, 0, 0, W, H);
+  }
+  function drawFrame(t) {
+    let z, openP, px;
+    if (t < 2800) {
+      z = 1 + 0.5 * ease(clamp01((t - 600) / 2200));
+      openP = 0;
+      px = 1 + 15 * ease(clamp01((t - 600) / 2200));
+    } else {
+      z = 1.5 + 0.7 * ease(clamp01((t - 2800) / 500));
+      openP = ease(clamp01((t - 2800) / 800));
+      px = 1 + 15 * (1 - ease(clamp01((t - 2800) / 700)));
+    }
+    if (openP > 0) { drawInterior(); drawDoors(z, openP); }
+    else drawHall(z);
+    present(Math.round(px));
+    // затемнение в начале и в конце
+    let dark = 0;
+    if (t < 600) dark = 1 - ease(t / 600);
+    else if (t > SHOP_INTRO_MS - 600) dark = ease((t - (SHOP_INTRO_MS - 600)) / 600);
+    if (dark > 0) { ctx.fillStyle = 'rgba(0,0,0,' + dark + ')'; ctx.fillRect(0, 0, W, H); }
+  }
+
+  shopIntroDone = done;
+  document.getElementById('shopIntro').style.display = 'block';
+  const t0 = performance.now();
+  shopIntroRaf = 1;
+  const loop = now => {
+    const t = now - t0;
+    if (t >= SHOP_INTRO_MS) { finishShopIntro(); return; }
+    drawFrame(t);
+    shopIntroRaf = requestAnimationFrame(loop);
+  };
+  shopIntroRaf = requestAnimationFrame(loop);
+}
+
 function openShop(from) {
+  if (shopIntroRaf) return;
+  playShopIntro(() => showShopNow(from));
+}
+function showShopNow(from) {
   shopReturnScreen = from; saveData();
   document.getElementById('shopCoins').textContent = '💰 ' + data.coins.toLocaleString();
   renderShop(); showScreen('shopScreen');
