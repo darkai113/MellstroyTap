@@ -1554,27 +1554,8 @@ function startBoot() {
       data.seasonCutsceneShown = true;
       saveData();
       
-      const testVideo = document.createElement('video');
-      testVideo.src = 'seazins1_kascen.mp4';
-      
-      let started = false;
-      const startIt = () => {
-        if (started) return;
-        started = true;
-        playCutscene('seazins1_kascen.mp4', () => {
-          startGame();
-        });
-      };
-      const skipIt = () => {
-        if (started) return;
-        started = true;
-        console.warn('⚠️ Катсцена seazins1_kascen.mp4 не найдена — пропускаем');
-        startGame();
-      };
-      
-      testVideo.oncanplay = startIt;
-      testVideo.onerror = skipIt;
-      setTimeout(skipIt, 2000);
+      // Катсцену при входе убрали: новая будет сделана отдельно
+      startGame();
     } else {
       startGame();
     }
