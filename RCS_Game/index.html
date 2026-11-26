@@ -1080,6 +1080,7 @@ html, body {
       <div class="ev-gifts" id="eventGifts"></div>
     </div>
     <div class="ev-timer" id="eventTimer"></div>
+    <button class="menu-btn" onclick="enterEventRoom()" style="margin-top:12px; border-color: rgba(255,215,0,0.5); color: #ffd700;">🚪 ЗАЙТИ В ДОМ</button>
     <button class="menu-btn" onclick="closeEvent()" style="margin-top:12px;">← НАЗАД</button>
   </div>
 
@@ -2041,6 +2042,11 @@ function finishShopIntro() {
   document.getElementById('shopCtrl').style.display = 'none';
   const done = shopIntroDone; shopIntroDone = null;
   if (done) done();
+}
+// Вход в комнату из ивента: открывается сцена сбоку, по выходу остаёмся на экране ивента
+function enterEventRoom() {
+  if (shopIntroActive) return;
+  playShopIntro(() => {});
 }
 function openShopDialog() {
   document.getElementById('shopDialog').style.display = 'block';
