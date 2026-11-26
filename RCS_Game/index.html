@@ -868,6 +868,9 @@ html, body {
 .help-preview { display: block; max-width: 100%; max-height: 180px; margin-top: 10px; border-radius: 10px; }
 .shop-intro { position: fixed; inset: 0; z-index: 9000; background: #000; display: none; }
 .shop-intro canvas { width: 100%; height: 100%; object-fit: cover; display: block; }
+.shop-dialog { position: absolute; left: 12px; right: 12px; bottom: 44px; background: rgba(10,10,14,0.94); border: 2px solid #6b6f7a; border-radius: 6px; padding: 12px 14px; font-family: 'Courier New', monospace; color: #eee; min-height: 90px; box-sizing: border-box; }
+.sd-name { color: #ffd700; font-size: 14px; letter-spacing: 2px; margin-bottom: 6px; }
+.sd-text { font-size: 15px; line-height: 1.4; }
 .shop-intro-skip { position: absolute; left: 0; right: 0; bottom: 14px; text-align: center; color: #777; font-size: 12px; font-family: Arial, sans-serif; pointer-events: none; }
 .announce-list { width: 100%; max-width: 600px; max-height: 65vh; overflow-y: auto; margin-top: 14px; padding: 4px; }
 .ann-card { border-radius: 16px; overflow: hidden; background: rgba(20,20,30,0.92); border: 1px solid rgba(255,215,0,0.25); margin-bottom: 14px; }
@@ -1085,7 +1088,11 @@ html, body {
   <!-- ИНТРО МАГАЗИНА: дверь и Дед -->
   <div class="shop-intro" id="shopIntro" onclick="skipShopIntro()">
     <canvas id="shopIntroCanvas"></canvas>
-    <div class="shop-intro-skip">нажми, чтобы пропустить</div>
+    <div class="shop-intro-skip" id="shopIntroSkip">нажми, чтобы пропустить</div>
+    <div class="shop-dialog" id="shopDialog" style="display:none" onclick="event.stopPropagation()">
+      <div class="sd-name">ДЕД</div>
+      <div class="sd-text" id="shopDialogText"></div>
+    </div>
   </div>
 
   <!-- ПОМОЩЬ -->
@@ -2009,11 +2016,13 @@ function checkAchievements() {
 // ---- Интро магазина: чёрный экран, пиксели от первого лица, дверь, Дед внутри ----
 const SHOP_INTRO_MS = 5200;
 let shopIntroRaf = 0;
+let shopIntroActive = false;
 let shopIntroDone = null;
-function skipShopIntro() { if (shopIntroRaf) finishShopIntro(); }
+function skipShopIntro() { if (shopIntroActive) finishShopIntro(); }
 function finishShopIntro() {
-  cancelAnimationFrame(shopIntroRaf); shopIntroRaf = 0;
+  cancelAnimationFrame(shopIntroRaf); shopIntroRaf = 0; shopIntroActive = false;
   document.getElementById('shopIntro').style.display = 'none';
+  document.getElementById('shopDialog').style.display = 'none';
   const done = shopIntroDone; shopIntroDone = null;
   if (done) done();
 }
@@ -2104,7 +2113,8 @@ function playShopIntro(done) {
     } else {
       z = 1.5 + 0.7 * ease(clamp01((t - 2800) / 500));
       openP = ease(clamp01((t - 2800) / 800));
-      px = 1 + 15 * (1 - ease(clamp01((t - 2800) / 700)));
+      // внутри магазина всё пиксельное: 4 пикселя на блок, включая Деда
+      px = 4 + 11 * (1 - ease(clamp01((t - 2800) / 800)));
     }
     if (openP > 0) { drawInterior(); drawDoors(z, openP); }
     else drawHall(z);
@@ -2112,17 +2122,22 @@ function playShopIntro(done) {
     // затемнение в начале и в конце
     let dark = 0;
     if (t < 600) dark = 1 - ease(t / 600);
-    else if (t > SHOP_INTRO_MS - 600) dark = ease((t - (SHOP_INTRO_MS - 600)) / 600);
     if (dark > 0) { ctx.fillStyle = 'rgba(0,0,0,' + dark + ')'; ctx.fillRect(0, 0, W, H); }
   }
 
-  shopIntroDone = done;
+  shopIntroDone = done; shopIntroActive = true;
   document.getElementById('shopIntro').style.display = 'block';
   const t0 = performance.now();
   shopIntroRaf = 1;
+  const dialog = document.getElementById('shopDialog');
   const loop = now => {
     const t = now - t0;
-    if (t >= SHOP_INTRO_MS) { finishShopIntro(); return; }
+    if (t >= SHOP_INTRO_MS) {
+      // анимация закончилась: держим последний кадр с диалогом, закрывается тапом
+      drawFrame(SHOP_INTRO_MS);
+      dialog.style.display = 'block';
+      return;
+    }
     drawFrame(t);
     shopIntroRaf = requestAnimationFrame(loop);
   };
