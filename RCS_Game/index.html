@@ -869,9 +869,13 @@ html, body {
 .shop-intro { position: fixed; top: 0; left: 100vw; width: 100vh; height: 100vw; transform: rotate(90deg); transform-origin: 0 0; z-index: 9000; background: #000; display: none; overflow: hidden; }
 .shop-intro canvas { width: 100%; height: 100%; object-fit: contain; display: block; }
 @media (orientation: landscape) { .shop-intro { left: 0; top: 0; width: 100vw; height: 100vh; transform: none; } }
-.shop-dialog { position: absolute; left: 12px; right: 12px; bottom: 44px; background: rgba(10,10,14,0.94); border: 2px solid #6b6f7a; border-radius: 6px; padding: 12px 14px; font-family: 'Courier New', monospace; color: #eee; min-height: 90px; box-sizing: border-box; }
+.shop-dialog { position: absolute; left: 12px; right: 12px; bottom: 84px; background: rgba(10,10,14,0.94); border: 2px solid #6b6f7a; border-radius: 6px; padding: 12px 14px; font-family: 'Courier New', monospace; color: #eee; min-height: 90px; box-sizing: border-box; }
 .sd-name { color: #ffd700; font-size: 14px; letter-spacing: 2px; margin-bottom: 6px; }
 .sd-text { font-size: 15px; line-height: 1.4; }
+.sd-close { margin-top: 10px; background: transparent; border: 1px solid #6b6f7a; color: #ccc; padding: 6px 12px; font-family: inherit; font-size: 12px; letter-spacing: 1px; border-radius: 4px; cursor: pointer; }
+.shop-ctrl { position: absolute; left: 0; right: 0; bottom: 8px; display: flex; justify-content: space-between; align-items: flex-end; padding: 0 12px; pointer-events: auto; }
+.shop-btn { width: 64px; height: 56px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.25); background: rgba(20,20,28,0.8); color: #fff; font-size: 22px; font-family: inherit; touch-action: none; }
+.shop-talk { width: auto; height: 48px; padding: 0 16px; font-size: 14px; letter-spacing: 1px; border-color: rgba(255,215,0,0.6); color: #ffd700; position: absolute; left: 50%; transform: translateX(-50%); bottom: 4px; }
 .shop-intro-skip { position: absolute; left: 0; right: 0; bottom: 14px; text-align: center; color: #777; font-size: 12px; font-family: Arial, sans-serif; pointer-events: none; }
 .announce-list { width: 100%; max-width: 600px; max-height: 65vh; overflow-y: auto; margin-top: 14px; padding: 4px; }
 .ann-card { border-radius: 16px; overflow: hidden; background: rgba(20,20,30,0.92); border: 1px solid rgba(255,215,0,0.25); margin-bottom: 14px; }
@@ -1093,6 +1097,12 @@ html, body {
     <div class="shop-dialog" id="shopDialog" style="display:none" onclick="event.stopPropagation()">
       <div class="sd-name">ДЕД</div>
       <div class="sd-text" id="shopDialogText"></div>
+      <button class="sd-close" onclick="closeShopDialog()">ЗАКРЫТЬ</button>
+    </div>
+    <div class="shop-ctrl" id="shopCtrl" style="display:none" onclick="event.stopPropagation()">
+      <button class="shop-btn" id="shopLeft" onpointerdown="shopKeys.left=true" onpointerup="shopKeys.left=false" onpointerleave="shopKeys.left=false" onpointercancel="shopKeys.left=false">◀</button>
+      <button class="shop-btn" id="shopRight" onpointerdown="shopKeys.right=true" onpointerup="shopKeys.right=false" onpointerleave="shopKeys.right=false" onpointercancel="shopKeys.right=false">▶</button>
+      <button class="shop-btn shop-talk" id="shopTalk" style="display:none" onclick="openShopDialog()">💬 ГОВОРИТЬ</button>
     </div>
   </div>
 
@@ -2014,22 +2024,43 @@ function checkAchievements() {
   }
 }
 
-// ---- Интро магазина: вид сбоку как в Террарии, экран повёрнут в альбомную ориентацию ----
-const SHOP_INTRO_MS = 5800;
+// ---- Магазин: сначала анимация от первого лица (переулок, дверь), потом игра сбоку ----
 let shopIntroRaf = 0;
 let shopIntroActive = false;
 let shopIntroDone = null;
-function skipShopIntro() { if (shopIntroActive) finishShopIntro(); }
+let shopSkipFn = null;
+const shopKeys = { left: false, right: false };
+function skipShopIntro() { if (shopIntroActive && shopSkipFn) shopSkipFn(); }
 function finishShopIntro() {
-  cancelAnimationFrame(shopIntroRaf); shopIntroRaf = 0; shopIntroActive = false;
+  cancelAnimationFrame(shopIntroRaf); shopIntroRaf = 0; shopIntroActive = false; shopSkipFn = null;
+  shopKeys.left = false; shopKeys.right = false;
   document.getElementById('shopIntro').style.display = 'none';
   document.getElementById('shopDialog').style.display = 'none';
+  document.getElementById('shopCtrl').style.display = 'none';
   const done = shopIntroDone; shopIntroDone = null;
   if (done) done();
 }
+function openShopDialog() {
+  document.getElementById('shopDialog').style.display = 'block';
+  document.getElementById('shopTalk').style.display = 'none';
+}
+function closeShopDialog() {
+  document.getElementById('shopDialog').style.display = 'none';
+}
+window.addEventListener('keydown', e => {
+  if (!shopIntroActive) return;
+  if (e.key === 'ArrowLeft') shopKeys.left = true;
+  if (e.key === 'ArrowRight') shopKeys.right = true;
+});
+window.addEventListener('keyup', e => {
+  if (e.key === 'ArrowLeft') shopKeys.left = false;
+  if (e.key === 'ArrowRight') shopKeys.right = false;
+});
 function playShopIntro(done) {
-  const W = 960, H = 540, GROUND = 400, WORLD_W = 1400, PIX = 3;
-  const DOOR_X = 1100, DOOR_W = 64, DOOR_TOP = 230;
+  const W = 960, H = 540, GROUND = 400, PIX_GAME = 3;
+  const DED_X = 760, DOOR_EXIT_X = 95;
+  const AVX = W / 2, AVY = H / 2, VW = 150, VH = 110;
+  const ADOOR = { x: AVX - 38, y: AVY - 80, w: 76, h: 170 };
   const cv = document.getElementById('shopIntroCanvas');
   cv.width = W; cv.height = H;
   const ctx = cv.getContext('2d');
@@ -2039,109 +2070,134 @@ function playShopIntro(done) {
   const hs = ALL_SKINS.find(sk => sk.id === data.currentSkin);
   const heroImg = new Image(); heroImg.src = hs ? skinFile(hs) : 'head.png';
   const dedImg = new Image(); dedImg.src = 'rare_man_thin.png';
-  const clamp01 = v => Math.max(0, Math.min(1, v));
+  const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+  const clamp01 = v => clamp(v, 0, 1);
   const ease = t => t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
-  const lerp = (a, b, t) => a + (b - a) * t;
+  const ctrl = document.getElementById('shopCtrl');
+  const talkBtn = document.getElementById('shopTalk');
+  const dialog = document.getElementById('shopDialog');
 
-  function drawStreet(camX) {
-    const sky = octx.createLinearGradient(0, 0, 0, GROUND);
-    sky.addColorStop(0, '#04050a'); sky.addColorStop(1, '#111a2c');
+  let phase = 'anim';
+  let t0 = 0, gameStart = 0, lastNow = 0;
+  const player = { x: 150, dir: 1, walk: 0 };
+
+  // ---- фаза 1: переулок от первого лица ----
+  function alleyDoorRect(z) { return { x: AVX + (ADOOR.x - AVX) * z, y: AVY + (ADOOR.y - AVY) * z, w: ADOOR.w * z, h: ADOOR.h * z }; }
+  function drawAlley(z, p) {
+    const sky = octx.createLinearGradient(0, 0, 0, AVY);
+    sky.addColorStop(0, '#03040a'); sky.addColorStop(1, '#0d1222');
     octx.fillStyle = sky; octx.fillRect(0, 0, W, H);
-    octx.fillStyle = '#0c1020';
-    for (let i = 0; i < 14; i++) {
-      const bx = i * 170 - camX * 0.4;
-      octx.fillRect(bx, 120 + (i % 3) * 30, 130, GROUND - 120 - (i % 3) * 30);
-    }
-    octx.fillStyle = '#2a211a'; octx.fillRect(-camX, GROUND, WORLD_W, H - GROUND);
-    octx.fillStyle = '#3a2d22';
-    for (let x = 0; x < WORLD_W; x += 40) for (let y = GROUND; y < H; y += 40) {
-      if (((x / 40) + (y / 40)) % 3 === 0) octx.fillRect(x - camX + 2, y + 2, 36, 36);
-    }
-    octx.fillStyle = '#4b3a2a'; octx.fillRect(-camX, GROUND - 6, WORLD_W, 6);
+    octx.fillStyle = '#17161d';
+    octx.beginPath(); octx.moveTo(0, 0); octx.lineTo(AVX - VW, AVY - VH); octx.lineTo(AVX - VW, AVY + VH); octx.lineTo(0, H); octx.closePath(); octx.fill();
+    octx.fillStyle = '#131219';
+    octx.beginPath(); octx.moveTo(W, 0); octx.lineTo(AVX + VW, AVY - VH); octx.lineTo(AVX + VW, AVY + VH); octx.lineTo(W, H); octx.closePath(); octx.fill();
+    octx.fillStyle = '#0a0a0e';
+    octx.beginPath(); octx.moveTo(0, H); octx.lineTo(AVX - VW, AVY + VH); octx.lineTo(AVX + VW, AVY + VH); octx.lineTo(W, H); octx.closePath(); octx.fill();
+    octx.fillStyle = '#121118'; octx.fillRect(AVX - VW, AVY - VH, VW * 2, VH * 2);
+    const d = alleyDoorRect(z), half = d.w / 2;
+    if (p > 0) { octx.fillStyle = '#000'; octx.fillRect(d.x, d.y, d.w, d.h); }
+    const panel = x => {
+      octx.fillStyle = '#1e1f26'; octx.fillRect(x, d.y, half, d.h);
+      octx.strokeStyle = '#2a2b33'; octx.lineWidth = Math.max(2, 3 * z);
+      octx.strokeRect(x + half * 0.15, d.y + d.h * 0.08, half * 0.7, d.h * 0.36);
+      octx.strokeRect(x + half * 0.15, d.y + d.h * 0.52, half * 0.7, d.h * 0.4);
+    };
+    panel(d.x - p * half * 1.1);
+    panel(d.x + half + p * half * 1.1);
   }
-  function drawShopWall(camX) {
-    const bx = 1000 - camX;
-    octx.fillStyle = '#1d1816'; octx.fillRect(bx, 120, 340, GROUND - 120);
-    octx.strokeStyle = 'rgba(0,0,0,0.5)'; octx.lineWidth = 2;
-    for (let y = 140; y < GROUND; y += 24) { octx.beginPath(); octx.moveTo(bx, y); octx.lineTo(bx + 340, y); octx.stroke(); }
-    octx.fillStyle = '#0a0908'; octx.fillRect(bx + 40, 170, 90, 50);
-  }
-  function drawDoor(camX, o) {
-    const x = DOOR_X - camX, y = DOOR_TOP, h = GROUND - DOOR_TOP;
-    octx.fillStyle = '#020202'; octx.fillRect(x, y, DOOR_W, h);
-    const pw = DOOR_W * (1 - o * 0.85);
-    octx.fillStyle = '#3a2e24'; octx.fillRect(x, y, pw, h);
-    octx.strokeStyle = '#241c15'; octx.lineWidth = 3;
-    octx.strokeRect(x + pw * 0.15, y + h * 0.08, pw * 0.7, h * 0.35);
-    octx.strokeRect(x + pw * 0.15, y + h * 0.52, pw * 0.7, h * 0.4);
-    octx.fillStyle = '#6b6f7a'; octx.fillRect(x + pw - 8, y + h * 0.5, 4, 10);
-  }
-  function drawHero(x, bob) {
-    const s = 110;
-    if (heroImg.complete && heroImg.naturalWidth) octx.drawImage(heroImg, x - s / 2, GROUND - s + bob, s, s);
-  }
-  function drawInterior(heroX) {
+
+  // ---- фаза 2: комната магазина сбоку ----
+  function drawRoom() {
     octx.fillStyle = '#0b0a09'; octx.fillRect(0, 0, W, H);
     for (let r = 0; r < 2; r++) {
       const y = 110 + r * 110;
-      octx.fillStyle = '#2a2118'; octx.fillRect(40, y + 70, 420, 10);
+      octx.fillStyle = '#2a2118'; octx.fillRect(120, y + 70, 420, 10);
       for (let i = 0; i < 9; i++) {
         octx.fillStyle = ['#3b3b44', '#2d3a33', '#3a2f2a', '#2a2d3a', '#3d3526'][(i + r) % 5];
-        octx.fillRect(50 + i * 44, y + 20, 30, 50);
+        octx.fillRect(130 + i * 44, y + 20, 30, 50);
       }
     }
     octx.fillStyle = '#1a130e'; octx.fillRect(0, GROUND, W, H - GROUND);
     octx.fillStyle = '#261d15'; octx.fillRect(0, GROUND - 6, W, 6);
+    // выход слева
+    octx.fillStyle = '#020202'; octx.fillRect(0, 230, 70, GROUND - 230);
+    octx.fillStyle = '#1e1f26'; octx.fillRect(8, 240, 54, GROUND - 240);
+    // прилавок
     octx.fillStyle = '#1a140f'; octx.fillRect(560, 300, 400, 100);
     octx.fillStyle = '#261d15'; octx.fillRect(560, 296, 400, 8);
+    // Дед
     if (dedImg.complete && dedImg.naturalWidth) {
-      octx.drawImage(dedImg, 640, 150, 260, 260);
-      octx.fillStyle = 'rgba(0,0,0,0.5)'; octx.fillRect(640, 150, 260, 260);
+      octx.drawImage(dedImg, DED_X - 130, 150, 260, 260);
+      octx.fillStyle = 'rgba(0,0,0,0.5)'; octx.fillRect(DED_X - 130, 150, 260, 260);
     }
-    drawHero(heroX, 0);
+    // герой
+    const sz = 110;
+    const bob = player.walk ? -Math.abs(Math.sin(player.walk)) * 6 : 0;
+    if (heroImg.complete && heroImg.naturalWidth) {
+      octx.save();
+      if (player.dir < 0) { octx.translate(player.x, 0); octx.scale(-1, 1); octx.drawImage(heroImg, -sz / 2, GROUND - sz + bob, sz, sz); }
+      else octx.drawImage(heroImg, player.x - sz / 2, GROUND - sz + bob, sz, sz);
+      octx.restore();
+    }
   }
-  function present() {
+
+  function present(px) {
     ctx.imageSmoothingEnabled = false;
-    const sw = Math.round(W / PIX), sh = Math.round(H / PIX);
+    if (px <= 1) { ctx.drawImage(off, 0, 0, W, H); return; }
+    const sw = Math.max(1, Math.round(W / px)), sh = Math.max(1, Math.round(H / px));
     small.width = sw; small.height = sh;
     const sctx = small.getContext('2d'); sctx.imageSmoothingEnabled = false;
     sctx.drawImage(off, 0, 0, sw, sh);
     ctx.drawImage(small, 0, 0, sw, sh, 0, 0, W, H);
   }
-  function drawFrame(t) {
-    const inside = t >= 5300;
-    if (!inside) {
-      const walkT = clamp01((t - 800) / 3400);
-      const heroX = lerp(100, DOOR_X + DOOR_W / 2 - 60, ease(walkT));
-      const camX = Math.max(0, Math.min(WORLD_W - W, heroX - W * 0.45));
-      const bob = walkT < 1 ? -Math.abs(Math.sin(t / 90)) * 6 : 0;
-      const o = ease(clamp01((t - 4200) / 600));
-      drawStreet(camX); drawShopWall(camX); drawDoor(camX, o);
-      drawHero(heroX - camX, bob);
-    } else {
-      const heroIn = lerp(-80, 300, ease(clamp01((t - 5300) / 1500)));
-      drawInterior(heroIn);
-    }
-    present();
-    let dark = 0;
-    if (t < 800) dark = 1 - ease(t / 800);
-    else if (t >= 4800 && t < 5300) dark = ease((t - 4800) / 500);
-    else if (t >= 5300 && t < 5800) dark = 1 - ease((t - 5300) / 500);
-    if (dark > 0) { ctx.fillStyle = 'rgba(0,0,0,' + dark + ')'; ctx.fillRect(0, 0, W, H); }
+  function fade(a) {
+    if (a > 0) { ctx.fillStyle = 'rgba(0,0,0,' + clamp01(a) + ')'; ctx.fillRect(0, 0, W, H); }
   }
+  function startGame(now) {
+    phase = 'game'; gameStart = now; lastNow = now;
+    ctrl.style.display = 'block';
+    shopSkipFn = null;
+  }
+  shopSkipFn = () => { if (phase === 'anim') startGame(performance.now()); };
 
   shopIntroDone = done; shopIntroActive = true;
   document.getElementById('shopIntro').style.display = 'block';
-  const dialog = document.getElementById('shopDialog');
-  const t0 = performance.now();
+
   const loop = now => {
-    const t = now - t0;
-    if (t >= SHOP_INTRO_MS) {
-      drawFrame(SHOP_INTRO_MS);
-      dialog.style.display = 'block';
-      return;
+    if (!shopIntroActive) return;
+    if (!t0) t0 = now;
+    if (phase === 'anim') {
+      const t = now - t0;
+      if (t >= 3000) { startGame(now); }
+      else {
+        const k = clamp01((t - 700) / 1900);
+        const z = 1 + 2.5 * ease(k);
+        const px = 1 + 11 * ease(k);
+        const p = ease(clamp01((t - 2200) / 700));
+        octx.clearRect(0, 0, W, H);
+        drawAlley(z, p);
+        present(Math.round(px));
+        fade(t < 700 ? 1 - ease(t / 700) : 0);
+      }
     }
-    drawFrame(t);
+    if (phase === 'game') {
+      const dt = Math.min(0.05, (now - lastNow) / 1000);
+      lastNow = now;
+      const dirx = (shopKeys.right ? 1 : 0) - (shopKeys.left ? 1 : 0);
+      if (dirx && dialog.style.display !== 'block') {
+        player.x += dirx * 260 * dt;
+        player.dir = dirx;
+        player.walk += dt * 10;
+      }
+      if (player.x <= DOOR_EXIT_X && dirx < 0) { finishShopIntro(); return; }
+      player.x = clamp(player.x, 90, 900);
+      const near = Math.abs(player.x - DED_X) < 170 && dialog.style.display !== 'block';
+      talkBtn.style.display = near ? 'block' : 'none';
+      octx.clearRect(0, 0, W, H);
+      drawRoom();
+      present(PIX_GAME);
+      fade(1 - ease(clamp01((now - gameStart) / 500)));
+    }
     shopIntroRaf = requestAnimationFrame(loop);
   };
   shopIntroRaf = requestAnimationFrame(loop);
