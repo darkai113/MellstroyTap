@@ -2157,7 +2157,7 @@ function startCellarQuest(done) {
   const SEG_W = 900, SEGS = 4, WORLD = SEG_W * SEGS;   // seg 0 — комната со щитком и ножом, seg 1..3 — коридоры с фогами
   const FUSE_X = 300, KNIFE_X = 760, EXIT_X = 60;
   const FOG_HP = 10, STRIKE_DMG = 2, STRIKE_RANGE = 160, STRIKE_CD = 0.4;
-  const FOG_RANGE = 110, FOG_CD = 1.4, PLAYER_HP = 5;
+  const FOG_AGGRO = 620, FOG_SPEED = 150, FOG_ATTACK = 85, FOG_CD = 1.0, PLAYER_HP = 5;
   const cv = document.getElementById('cellarCanvas');
   cv.width = W; cv.height = H;
   const ctx = cv.getContext('2d');
@@ -2393,8 +2393,15 @@ function startCellarQuest(done) {
     for (const f of st.fogs) {
       if (!f.alive) continue;
       if (f.flash > 0) f.flash = Math.max(0, f.flash - dt * 4);
+      const dx = p.x - f.x, d = Math.abs(dx);
+      const inSeg = Math.floor(p.x / SEG_W) === f.seg;
+      // фог замечает героя в своём коридоре и идёт к нему
+      if (inSeg && d < FOG_AGGRO && d > FOG_ATTACK) {
+        f.x += Math.sign(dx) * Math.min(FOG_SPEED * dt, d - FOG_ATTACK);
+      }
+      f.x = clamp(f.x, f.seg * SEG_W + 60, (f.seg + 1) * SEG_W - 60);
       f.cool -= dt;
-      if (Math.abs(f.x - p.x) < FOG_RANGE && f.cool <= 0) {
+      if (inSeg && Math.abs(p.x - f.x) < FOG_ATTACK && f.cool <= 0) {
         f.cool = FOG_CD; st.hp -= 1; st.hurt = 0.4;
         if (st.hp <= 0) { die(); break; }
       }
