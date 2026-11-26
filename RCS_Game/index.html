@@ -1044,7 +1044,7 @@ html, body {
 
   <!-- СЕЗОННЫЙ ПРОПУСК -->
   <div class="screen" id="seasonScreen">
-    <div class="title" id="seasonTitle" style="font-size:32px; color:#FFD700; text-shadow: 0 0 30px rgba(255,215,0,0.8);">СЕЗОН 1: МУРИНО</div>
+    <div class="title" id="seasonTitle" style="font-size:32px; color:#FFD700; text-shadow: 0 0 30px rgba(255,215,0,0.8);">СЕЗОН 2: ПИКСЕЛЬ</div>
     <div style="color:#8888aa; margin-bottom:15px; font-family:Arial; font-size:14px;" id="seasonTimer">Осталось: 30 дней</div>
     <div class="season-bar" id="seasonBar">
       <div class="season-bar-fill" id="seasonXpBar"></div>
@@ -1212,7 +1212,7 @@ const DEFAULT_DATA = {
 const SEASON_TOTAL_LEVELS = 100;
 const XP_PER_TAP = 1;
 const XP_PER_BOSS = 500;
-const CURRENT_SEASON = 1; // ⚠️ Меняй при старте нового сезона (2, 3, 4...)
+const CURRENT_SEASON = 2; // ⚠️ Меняй при старте нового сезона (2, 3, 4...)
 
 const SEASON_REWARDS = [];
 const SEASON_ROULETTES = ['common', 'mitish', 'burmalda', 'army', 'verx'];
@@ -1286,7 +1286,7 @@ function nyTick() {
   // Экран сезона
   const st = document.getElementById('seasonTitle');
   const stm = document.getElementById('seasonTimer');
-  if (st) st.textContent = active ? 'С НОВЫМ ГОДОМ!' : 'СЕЗОН 1: МУРИНО';
+  if (st) st.textContent = active ? 'С НОВЫМ ГОДОМ!' : 'СЕЗОН 2: ПИКСЕЛЬ';
   if (stm && active) stm.textContent = 'Осталось: ' + nySeasonDaysLeft() + ' дн.';
 
   // Снег (создаётся один раз)
@@ -1535,7 +1535,9 @@ function startBoot() {
     
     // Катсцена играет, если игрок ещё не видел катсцену ЭТОГО сезона
     if (data.currentSeason !== CURRENT_SEASON) {
+      // Новый сезон: прогресс уровней сбрасывается, награды за прошлый сезон уже выданы
       data.currentSeason = CURRENT_SEASON;
+      data.seasonLevel = 1; data.seasonXp = 0; data.seasonClaimed = [];
       data.seasonCutsceneShown = true;
       saveData();
       
