@@ -875,7 +875,17 @@ html, body {
 .sd-close { margin-top: 10px; background: transparent; border: 1px solid #6b6f7a; color: #ccc; padding: 6px 12px; font-family: inherit; font-size: 12px; letter-spacing: 1px; border-radius: 4px; cursor: pointer; }
 .shop-ctrl { position: absolute; left: 0; right: 0; bottom: 8px; display: flex; justify-content: space-between; align-items: flex-end; padding: 0 12px; pointer-events: auto; }
 .shop-btn { width: 64px; height: 56px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.25); background: rgba(20,20,28,0.8); color: #fff; font-size: 22px; font-family: inherit; touch-action: none; }
-.shop-talk { width: auto; height: 48px; padding: 0 16px; font-size: 14px; letter-spacing: 1px; border-color: rgba(255,215,0,0.6); color: #ffd700; position: absolute; left: 50%; transform: translateX(-50%); bottom: 4px; }
+.shop-act { position: absolute; top: 12px; right: 12px; width: auto; height: 48px; padding: 0 16px; font-size: 14px; letter-spacing: 1px; border-color: rgba(255,215,0,0.6); color: #ffd700; }
+.fuse-game { position: absolute; left: 50%; top: 50%; transform: translate(-50%,-50%); width: 420px; max-width: 80%; background: rgba(12,12,18,0.96); border: 2px solid #6b6f7a; border-radius: 10px; padding: 14px; font-family: 'Courier New', monospace; color: #eee; text-align: center; }
+.fg-title { color: #ffd700; letter-spacing: 2px; font-size: 16px; }
+.fg-hint { color: #999; font-size: 12px; margin: 6px 0 12px; }
+.fg-rows { display: flex; flex-direction: column; gap: 10px; }
+.fg-row { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+.fg-node { width: 54px; height: 40px; border: 2px solid #222; border-radius: 6px; cursor: pointer; }
+.fg-node.sel { outline: 3px solid #fff; }
+.fg-wire { flex: 1; height: 4px; background: #333; }
+.fg-wire.ok { background: #4ade80; }
+.shop-talk { width: auto; height: 48px; padding: 0 16px; font-size: 14px; letter-spacing: 1px; border-color: rgba(255,215,0,0.6); color: #ffd700; position: absolute; top: 12px; right: 12px; bottom: auto; }
 .shop-intro-skip { position: absolute; left: 0; right: 0; bottom: 14px; text-align: center; color: #777; font-size: 12px; font-family: Arial, sans-serif; pointer-events: none; }
 .announce-list { width: 100%; max-width: 600px; max-height: 65vh; overflow-y: auto; margin-top: 14px; padding: 4px; }
 .ann-card { border-radius: 16px; overflow: hidden; background: rgba(20,20,30,0.92); border: 1px solid rgba(255,215,0,0.25); margin-bottom: 14px; }
@@ -1099,8 +1109,8 @@ html, body {
     <div class="shop-dialog" id="shopDialog" style="display:none" onclick="event.stopPropagation()">
       <div class="sd-name">ДЕД</div>
       <div class="sd-text" id="shopDialogText"></div>
+      <button class="sd-close" id="sdChoice" onclick="goCellarFromDed()" style="display:none; margin-right:8px; border-color:rgba(255,215,0,0.6); color:#ffd700;">ХОРОШО, ТЫ МНЕ ТОЛЬКО ФОНАРИК ДАЙ</button>
       <button class="sd-close" onclick="closeShopDialog()">ЗАКРЫТЬ</button>
-      <button class="sd-close" onclick="goCellarFromDed()" style="margin-left:8px; border-color:rgba(255,215,0,0.6); color:#ffd700;">ПОМОЧЬ ДЕДУ</button>
     </div>
     <div class="shop-ctrl" id="shopCtrl" style="display:none" onclick="event.stopPropagation()">
       <button class="shop-btn" id="shopLeft" onpointerdown="shopKeys.left=true" onpointerup="shopKeys.left=false" onpointerleave="shopKeys.left=false" onpointercancel="shopKeys.left=false">◀</button>
@@ -1114,8 +1124,13 @@ html, body {
     <canvas id="cellarCanvas"></canvas>
     <div class="shop-ctrl" id="cellarCtrl" onclick="event.stopPropagation()">
       <button class="shop-btn" onpointerdown="cellarKeys.left=true" onpointerup="cellarKeys.left=false" onpointerleave="cellarKeys.left=false" onpointercancel="cellarKeys.left=false">◀</button>
-      <button class="shop-btn shop-talk" id="cellarAct" onclick="cellarAct()" style="display:none">🔧</button>
       <button class="shop-btn" onpointerdown="cellarKeys.right=true" onpointerup="cellarKeys.right=false" onpointerleave="cellarKeys.right=false" onpointercancel="cellarKeys.right=false">▶</button>
+    </div>
+    <button class="shop-btn shop-act" id="cellarAct" onclick="event.stopPropagation(); cellarAct()" style="display:none">🔧</button>
+    <div class="fuse-game" id="fuseGame" style="display:none" onclick="event.stopPropagation()">
+      <div class="fg-title">РЕМОНТ ЩИТКА</div>
+      <div class="fg-hint">Соедини провода одного цвета: сначала слева, потом справа</div>
+      <div class="fg-rows" id="fuseRows"></div>
     </div>
   </div>
 
@@ -2047,7 +2062,7 @@ function skipShopIntro() { if (shopIntroActive && shopSkipFn) shopSkipFn(); }
 let keepLandscape = false;
 function finishShopIntro() {
   cancelAnimationFrame(shopIntroRaf); shopIntroRaf = 0; shopIntroActive = false; shopSkipFn = null;
-  if (!keepLandscape) unlockOrientation();
+  if (!keepLandscape) { unlockOrientation(); roomMusicStop(); }
   keepLandscape = false;
   shopKeys.left = false; shopKeys.right = false;
   document.getElementById('shopIntro').style.display = 'none';
@@ -2062,15 +2077,73 @@ function enterEventRoom() {
   lockLandscape();
   playShopIntro(() => {});
 }
-// ---- Подвал: фонарик, щиток, нож и бой с двумя ФОГами (5 ур.) ----
+// ---- Музыка комнаты и подвала ----
+let roomAudio = null;
+function roomMusicStart() {
+  try {
+    if (!roomAudio) { roomAudio = new Audio('cellar_music.mp3'); roomAudio.loop = true; }
+    roomAudio.volume = Math.min(1, data.musicVolume || 0.5);
+    roomAudio.play().catch(() => {});
+    const bg = document.getElementById('bgMusic'); if (bg) bg.pause();
+  } catch (e) {}
+}
+function roomMusicStop() {
+  try {
+    if (roomAudio) roomAudio.pause();
+    const bg = document.getElementById('bgMusic');
+    if (bg && gameRunning && data.musicVolume > 0) bg.play().catch(() => {});
+  } catch (e) {}
+}
+
+// ---- Подвал: фонарик, ремонт щитка (мини-игра), нож, бой с двумя ФОГами 5 ур., возврат по тому же пути ----
 const cellarKeys = { left: false, right: false };
 let cellarActive = false;
 let cellarRaf = 0;
 let cellarState = null;
 function cellarAct() { if (cellarActive && cellarState && cellarState.onAct) cellarState.onAct(); }
+
+function openFuseGame(onDone) {
+  const box = document.getElementById('fuseGame');
+  const rows = document.getElementById('fuseRows');
+  const colors = ['#e53e3e', '#3182ce', '#38a169'];
+  const rightOrder = [...colors].sort(() => Math.random() - 0.5);
+  rows.innerHTML = '';
+  let sel = null, matched = 0;
+  const close = () => { box.style.display = 'none'; };
+  box.querySelector('.fg-title').onclick = close;
+  const leftNodes = [], rightNodes = [];
+  colors.forEach((c, i) => {
+    const row = document.createElement('div'); row.className = 'fg-row';
+    const l = document.createElement('div'); l.className = 'fg-node'; l.style.background = c;
+    const w = document.createElement('div'); w.className = 'fg-wire';
+    const r = document.createElement('div'); r.className = 'fg-node'; r.style.background = rightOrder[i];
+    leftNodes.push(l); rightNodes.push(r);
+    l.onclick = () => {
+      if (l.dataset.done) return;
+      leftNodes.forEach(n => n.classList.remove('sel'));
+      l.classList.add('sel'); sel = { c, el: l };
+    };
+    r.onclick = () => {
+      if (!sel || r.dataset.done) return;
+      if (rightOrder[i] === sel.c) {
+        sel.el.dataset.done = '1'; sel.el.classList.remove('sel');
+        r.dataset.done = '1'; w.classList.add('ok');
+        sel = null; matched++;
+        if (matched === colors.length) setTimeout(() => { close(); onDone(); }, 400);
+      } else {
+        sel.el.classList.remove('sel'); sel = null; showToast('Не тот провод');
+      }
+    };
+    row.appendChild(l); row.appendChild(w); row.appendChild(r);
+    rows.appendChild(row);
+  });
+  box.style.display = 'block';
+}
+
 function startCellarQuest(done) {
-  const W = 960, H = 540, GROUND = 400, PIX = 3;
-  const FUSE_X = 200, KNIFE_X = 520;
+  const W = 960, H = 540, GROUND = 400, PIX = 3, WORLD = 2600;
+  const FUSE_X = 300, KNIFE_X = 760, EXIT_X = 60;
+  const ENEMY_X = [1350, 1750];
   const cv = document.getElementById('cellarCanvas');
   cv.width = W; cv.height = H;
   const ctx = cv.getContext('2d');
@@ -2083,85 +2156,98 @@ function startCellarQuest(done) {
   const overlay = document.getElementById('cellarOverlay');
   const actBtn = document.getElementById('cellarAct');
   const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+  const makeEnemies = () => ENEMY_X.map(x => ({ x, hp: 7, max: 7, alive: true, flash: 0 }));
   const st = {
-    player: { x: 90, dir: 1, walk: 0 },
-    fuseDone: false, knife: false,
-    enemies: [ { x: 760, hp: 5, max: 5, alive: true, flash: 0 }, { x: 880, hp: 5, max: 5, alive: true, flash: 0 } ],
-    done: false, act: null, onAct: null
+    player: { x: 120, dir: 1, walk: 0 },
+    fuseDone: false, knife: false, phase: 'out',
+    enemies: makeEnemies(), onAct: null
   };
   cellarState = st;
+  const toast = text => { try { showToast(text); } catch (e) {} };
 
-  function nearest(list, x, range) {
-    let best = null, bd = range;
-    for (const it of list) { if (!it.alive && it.alive !== undefined) continue; const d = Math.abs(it.x - x); if (d < bd) { bd = d; best = it; } }
-    return best;
-  }
+  // Что доступно рядом с героем: текст подсказки и действие
   function currentAction() {
     const x = st.player.x;
-    if (!st.fuseDone && Math.abs(x - FUSE_X) < 90) return { label: '🔧 ЩИТОК', run: () => { st.fuseDone = true; toast('Свет включён'); } };
-    if (st.fuseDone && !st.knife && Math.abs(x - KNIFE_X) < 90) return { label: '🔪 ПОДНЯТЬ', run: () => { st.knife = true; toast('Нож у тебя'); } };
+    if (!st.fuseDone && Math.abs(x - FUSE_X) < 110)
+      return { label: '🔧 РЕМОНТ ЩИТКА', at: FUSE_X, run: () => openFuseGame(() => { st.fuseDone = true; toast('Свет включён'); }) };
+    if (st.fuseDone && !st.knife && Math.abs(x - KNIFE_X) < 110)
+      return { label: '🔪 ПОДНЯТЬ НОЖ', at: KNIFE_X, run: () => { st.knife = true; toast('Нож у тебя'); } };
     if (st.knife) {
-      const e = st.enemies.find(en => en.alive && Math.abs(en.x - x) < 130);
-      if (e) return { label: '🔪 УДАР', run: () => {
+      const e = st.enemies.find(en => en.alive && Math.abs(en.x - x) < 150);
+      if (e) return { label: '🔪 УДАР', at: e.x, run: () => {
         e.hp -= 1; e.flash = 1;
         if (e.hp <= 0) { e.alive = false; toast('ФОГ (5 ур.) повержен'); }
-        if (st.enemies.every(en => !en.alive)) { st.act = 'back'; }
       } };
     }
-    if (st.enemies.every(en => !en.alive)) return { label: '← К ДЕДУ', run: () => finish() };
+    const allDead = st.enemies.every(en => !en.alive);
+    if (st.knife && allDead && st.phase === 'out' && x > 1000)
+      return { label: '↩ НАЗАД К ДЕДУ', at: x, run: () => { st.phase = 'return'; st.enemies = makeEnemies(); toast('Нечисть вернулась...'); } };
+    if (st.phase === 'return' && allDead && x < 200)
+      return { label: '← К ДЕДУ', at: EXIT_X, run: () => finish() };
     return null;
   }
-  function toast(text) { try { showToast(text); } catch (e) {} }
 
-  function drawCellar() {
+  function drawCellar(cam) {
     octx.fillStyle = '#07060a'; octx.fillRect(0, 0, W, H);
-    // кирпичная стена
     octx.fillStyle = '#16120f'; octx.fillRect(0, 0, W, GROUND);
     octx.strokeStyle = 'rgba(0,0,0,0.6)'; octx.lineWidth = 2;
     for (let y = 30; y < GROUND; y += 28) { octx.beginPath(); octx.moveTo(0, y); octx.lineTo(W, y); octx.stroke(); }
-    // пол
+    for (let x = 0; x < WORLD; x += 180) { octx.fillStyle = 'rgba(0,0,0,0.35)'; octx.fillRect(x - cam, 0, 14, GROUND); }
     octx.fillStyle = '#1d1712'; octx.fillRect(0, GROUND, W, H - GROUND);
     octx.fillStyle = '#2a2018'; octx.fillRect(0, GROUND - 6, W, 6);
+    // выход к Деду (дверь слева)
+    octx.fillStyle = '#020202'; octx.fillRect(EXIT_X - 40 - cam, 240, 80, GROUND - 240);
     // щиток
-    octx.fillStyle = '#4a4f57'; octx.fillRect(FUSE_X - 50, 150, 100, 150);
-    octx.fillStyle = '#2a2d33'; octx.fillRect(FUSE_X - 40, 170, 80, 100);
-    octx.fillStyle = st.fuseDone ? '#4ade80' : '#7a1d1d'; octx.beginPath(); octx.arc(FUSE_X - 20, 190, 6, 0, Math.PI * 2); octx.fill();
-    octx.fillStyle = '#ffd700'; octx.beginPath(); octx.arc(FUSE_X + 20, 190, 6, 0, Math.PI * 2); octx.fill();
-    // нож на полу
+    octx.fillStyle = '#4a4f57'; octx.fillRect(FUSE_X - 50 - cam, 150, 100, 150);
+    octx.fillStyle = '#2a2d33'; octx.fillRect(FUSE_X - 40 - cam, 170, 80, 100);
+    octx.fillStyle = st.fuseDone ? '#4ade80' : '#7a1d1d';
+    octx.beginPath(); octx.arc(FUSE_X - 20 - cam, 190, 6, 0, Math.PI * 2); octx.fill();
+    // нож
     if (!st.knife && st.fuseDone) {
-      octx.fillStyle = '#c8ccd4'; octx.fillRect(KNIFE_X - 26, GROUND - 16, 40, 6);
-      octx.fillStyle = '#6b4a2b'; octx.fillRect(KNIFE_X + 14, GROUND - 18, 14, 10);
+      octx.fillStyle = '#c8ccd4'; octx.fillRect(KNIFE_X - 26 - cam, GROUND - 16, 40, 6);
+      octx.fillStyle = '#6b4a2b'; octx.fillRect(KNIFE_X + 14 - cam, GROUND - 18, 14, 10);
     }
-    // ФОГи (5 ур.)
+    // ФОГи
     for (const e of st.enemies) {
       if (!e.alive) continue;
-      const sz = 120, sway = Math.sin(performance.now() / 300 + e.x) * 4;
+      const sz = 120, sway = Math.sin(performance.now() / 300 + e.x) * 4, ex = e.x - cam;
       octx.save();
       if (e.flash > 0) octx.globalAlpha = 0.5 + 0.5 * Math.sin(e.flash * 30);
-      if (fogImg.complete && fogImg.naturalWidth) octx.drawImage(fogImg, e.x - sz / 2, GROUND - sz + sway, sz, sz);
+      if (fogImg.complete && fogImg.naturalWidth) octx.drawImage(fogImg, ex - sz / 2, GROUND - sz + sway, sz, sz);
       octx.restore();
-      // полоска HP
-      octx.fillStyle = '#300'; octx.fillRect(e.x - 40, GROUND - sz - 14, 80, 8);
-      octx.fillStyle = '#e53e3e'; octx.fillRect(e.x - 40, GROUND - sz - 14, 80 * Math.max(0, e.hp) / e.max, 8);
+      octx.fillStyle = '#300'; octx.fillRect(ex - 40, GROUND - sz - 14, 80, 8);
+      octx.fillStyle = '#e53e3e'; octx.fillRect(ex - 40, GROUND - sz - 14, 80 * Math.max(0, e.hp) / e.max, 8);
       octx.fillStyle = '#fff'; octx.font = 'bold 14px Arial'; octx.textAlign = 'center';
-      octx.fillText('5 УР.', e.x, GROUND - sz - 20);
+      octx.fillText('5 УР.', ex, GROUND - sz - 20);
     }
     // герой
-    const sz = 110, bob = st.player.walk ? -Math.abs(Math.sin(st.player.walk)) * 6 : 0;
+    const sz = 110, bob = st.player.walk ? -Math.abs(Math.sin(st.player.walk)) * 6 : 0, px = st.player.x - cam;
     if (heroImg.complete && heroImg.naturalWidth) {
       octx.save();
-      if (st.player.dir < 0) { octx.translate(st.player.x, 0); octx.scale(-1, 1); octx.drawImage(heroImg, -sz / 2, GROUND - sz + bob, sz, sz); }
-      else octx.drawImage(heroImg, st.player.x - sz / 2, GROUND - sz + bob, sz, sz);
+      if (st.player.dir < 0) { octx.translate(px, 0); octx.scale(-1, 1); octx.drawImage(heroImg, -sz / 2, GROUND - sz + bob, sz, sz); }
+      else octx.drawImage(heroImg, px - sz / 2, GROUND - sz + bob, sz, sz);
       octx.restore();
     }
-    // свет: фонарик вокруг героя, пока свет не включён
+    // темнота с фонариком, пока свет не включён
     if (!st.fuseDone) {
-      const r = 200;
-      const g = octx.createRadialGradient(st.player.x, GROUND - 60, 40, st.player.x, GROUND - 60, r);
+      const g = octx.createRadialGradient(px, GROUND - 60, 40, px, GROUND - 60, 220);
       g.addColorStop(0, 'rgba(0,0,0,0)'); g.addColorStop(1, 'rgba(0,0,0,0.97)');
       octx.fillStyle = g; octx.fillRect(0, 0, W, H);
     }
   }
+
+  // подсказка над объектом, как в Roblox
+  function drawPrompt(a, cam) {
+    if (!a || !a.at) return;
+    const x = a.at - cam, y = GROUND - 240;
+    octx.font = 'bold 16px Arial';
+    const text = a.label, tw = octx.measureText(text).width + 24;
+    octx.fillStyle = 'rgba(15,15,20,0.92)'; octx.fillRect(x - tw / 2, y - 18, tw, 32);
+    octx.strokeStyle = '#ffd700'; octx.lineWidth = 2; octx.strokeRect(x - tw / 2, y - 18, tw, 32);
+    octx.fillStyle = '#ffd700'; octx.textAlign = 'center'; octx.fillText(text, x, y + 4);
+    octx.beginPath(); octx.moveTo(x - 6, y + 14); octx.lineTo(x + 6, y + 14); octx.lineTo(x, y + 22); octx.fill();
+  }
+
   function present() {
     ctx.imageSmoothingEnabled = false;
     const sw = Math.round(W / PIX), sh = Math.round(H / PIX);
@@ -2170,15 +2256,19 @@ function startCellarQuest(done) {
     sctx.drawImage(off, 0, 0, sw, sh);
     ctx.drawImage(small, 0, 0, sw, sh, 0, 0, W, H);
   }
+
   function finish() {
     cancelAnimationFrame(cellarRaf); cellarRaf = 0; cellarActive = false;
     unlockOrientation();
     overlay.style.display = 'none';
+    document.getElementById('fuseGame').style.display = 'none';
     window.removeEventListener('keydown', onKey); window.removeEventListener('keyup', onKeyUp);
     cellarKeys.left = false; cellarKeys.right = false;
     data.pixelCoins = (data.pixelCoins || 0) + 1000; saveData();
+    roomMusicStop();
     toast('Дед дал 1000 пиксель-коинов (тратятся только у него в магазине)');
-    if (done) done();
+    // Возвращаемся к Деду в комнату
+    playShopIntro(() => { if (done) done(); });
   }
   function onKey(e) {
     if (e.key === 'ArrowLeft') cellarKeys.left = true;
@@ -2195,31 +2285,41 @@ function startCellarQuest(done) {
   cellarActive = true;
   lockLandscape();
   overlay.style.display = 'block';
+  roomMusicStart();
   let last = performance.now();
   const loop = now => {
     if (!cellarActive) return;
     const dt = Math.min(0.05, (now - last) / 1000); last = now;
     const dirx = (cellarKeys.right ? 1 : 0) - (cellarKeys.left ? 1 : 0);
-    if (dirx) { st.player.x = clamp(st.player.x + dirx * 240 * dt, 40, 900); st.player.dir = dirx; st.player.walk += dt * 10; }
+    if (dirx && document.getElementById('fuseGame').style.display !== 'block') {
+      st.player.x = clamp(st.player.x + dirx * 260 * dt, 40, WORLD - 40);
+      st.player.dir = dirx; st.player.walk += dt * 10;
+    }
     for (const e of st.enemies) if (e.flash > 0) e.flash = Math.max(0, e.flash - dt * 4);
+    const cam = clamp(st.player.x - W * 0.45, 0, WORLD - W);
     const a = currentAction();
     actBtn.style.display = a ? 'block' : 'none';
     if (a) actBtn.textContent = a.label;
-    if (st.act === 'back') { st.act = null; actBtn.style.display = 'none'; }
     octx.clearRect(0, 0, W, H);
-    drawCellar();
+    drawCellar(cam);
+    drawPrompt(a, cam);
     present();
     cellarRaf = requestAnimationFrame(loop);
   };
   cellarRaf = requestAnimationFrame(loop);
 }
 
+// Выбор «хорошо, фонарик дай»: Дед даёт фонарик, начинается квест в подвале
 function goCellarFromDed() {
   keepLandscape = true;
   finishShopIntro();
+  showToast('Дед дал фонарик');
   startCellarQuest(() => {});
 }
+const DED_LINE = 'Внучек, помоги дедушке в погребе, нечисть завелась!';
 function openShopDialog() {
+  document.getElementById('shopDialogText').textContent = DED_LINE;
+  document.getElementById('sdChoice').style.display = 'inline-block';
   document.getElementById('shopDialog').style.display = 'block';
   document.getElementById('shopTalk').style.display = 'none';
 }
@@ -2312,6 +2412,7 @@ function playShopIntro(done) {
   }
   shopIntroDone = done; shopIntroActive = true;
   document.getElementById('shopIntro').style.display = 'block';
+  roomMusicStart();
   startGame(performance.now());
 
   const loop = now => {
