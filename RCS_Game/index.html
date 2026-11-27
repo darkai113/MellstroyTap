@@ -2297,19 +2297,24 @@ function openModPicker(skinId) { mpSkin = skinId; renderModPicker(); document.ge
 function closeModPicker() { document.getElementById('modPicker').style.display = 'none'; renderSkins(); }
 function renderModPicker() {
   const skin = ALL_SKINS.find(s => s.id === mpSkin);
-  document.getElementById('mpTitle').textContent = 'МОДИФИКАЦИЯ: ' + (skin ? skin.name : '');
+  document.getElementById('mpTitle').textContent = 'МОДИФИКАЦИИ: ' + (skin ? skin.name : '');
   const cur = modOf(mpSkin);
-  let h = '<div class="mod-cur">Надето: ' + (cur ? cur.name + ' (' + cur.tier + ')' : 'ничего') + '</div>';
-  if (cur) h += '<button class="q-btn" onclick="unequipMod()">СНЯТЬ</button>';
-  h += '<div class="mod-sep">В ИНВЕНТАРЕ</div>';
+  let h = '<div class="mod-cur"><b>Сейчас на скине:</b><br>' +
+    (cur ? cur.name + ' · даёт буст ×' + cur.boostMul + (cur.pixel ? ' и пиксельный вид' : '') : 'ничего — буст без модификации') + '</div>';
+  if (cur) h += '<button class="q-btn" onclick="unequipMod()">СНЯТЬ МОДИФИКАЦИЮ</button>';
+  h += '<div class="mod-sep">В ЗАПАСЕ (нажми НАДЕТЬ, чтобы поставить на этот скин):</div>';
   let any = false;
   MODS.forEach(m => {
     const c = data.modInv[m.id] || 0;
     if (c <= 0) return;
     any = true;
-    h += '<div class="q-row"><div class="q-info"><div class="q-title">' + m.name + ' · штук: ' + c + '</div><div class="q-meta">' + m.tier + ' · ' + m.desc + '</div></div><button class="q-btn" onclick="equipMod(\'' + m.id + '\')">НАДЕТЬ</button></div>';
+    h += '<div class="q-row"><div class="q-info"><div class="q-title">' + m.name + '</div>' +
+      '<div class="q-meta">' + m.tier + ' · даёт буст ×' + m.boostMul + '</div>' +
+      '<div class="q-meta">в запасе: ' + c + ' шт.</div></div>' +
+      '<button class="q-btn" onclick="equipMod(\'' + m.id + '\')">НАДЕТЬ</button></div>';
   });
-  if (!any) h += '<div class="q-meta">Пусто. Крути рулетку в коллекции.</div>';
+  if (!any) h += '<div class="q-meta">Модификаций нет. Купи прокрутку в разделе «Рулетки».</div>';
+  h += '<div class="q-meta" style="margin-top:10px;">Если надеть новую модификацию, прошлая вернётся в запас.</div>';
   document.getElementById('mpList').innerHTML = h;
 }
 function equipMod(id) {
