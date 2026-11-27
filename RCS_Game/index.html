@@ -881,6 +881,23 @@ html, body {
 .cellar-ctrl .shop-btn { width: 80px; height: 70px; font-size: 28px; }
 .cellar-act { border-color: rgba(255,215,0,0.6); color: #ffd700; }
 .cellar-strike { border-color: rgba(229,62,62,0.7); color: #fca5a5; }
+.shop-menu { position: absolute; left: 12px; top: 12px; display: flex; flex-direction: column; gap: 8px; }
+.shop-menu-btn { width: auto; height: 44px; padding: 0 14px; font-size: 13px; border-color: rgba(255,215,0,0.6); color: #ffd700; }
+.mod-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.72); display: none; align-items: center; justify-content: center; z-index: 200; padding: 16px; box-sizing: border-box; }
+.mod-box { width: min(92vw, 420px); max-height: 92vh; overflow: auto; background: #0e0e14; border: 2px solid #6b6f7a; border-radius: 10px; padding: 14px; font-family: 'Courier New', monospace; color: #eee; box-sizing: border-box; }
+.mod-box .sd-name { color: #ffd700; font-weight: 900; letter-spacing: 1px; margin-bottom: 8px; }
+.mr-img { width: 100%; border-radius: 8px; image-rendering: pixelated; margin-bottom: 8px; }
+.mr-text { min-height: 48px; font-size: 15px; line-height: 1.4; }
+.q-row { display: flex; align-items: center; gap: 10px; padding: 10px 0; border-bottom: 1px solid #2a2a33; }
+.q-check { width: 24px; text-align: center; font-size: 18px; }
+.q-info { flex: 1; }
+.q-title { font-weight: 700; font-size: 14px; }
+.q-meta { font-size: 12px; color: #9aa; margin-top: 2px; }
+.q-btn { padding: 8px 10px; border-radius: 6px; border: 1px solid #ffd700; background: #1a1a22; color: #ffd700; font-weight: 900; font-family: inherit; font-size: 12px; white-space: nowrap; }
+.q-btn:disabled { border-color: #444; color: #666; }
+.mod-sep { margin: 12px 0 4px; font-size: 12px; color: #9aa; letter-spacing: 1px; }
+.mod-cur { font-size: 14px; margin-bottom: 8px; }
+.skin-mod-btn { border-color: rgba(155,93,229,0.8) !important; background: linear-gradient(135deg, #6a2fb3, #9b5de5) !important; }
 .shop-act { position: absolute; top: 12px; right: 12px; width: auto; height: 48px; padding: 0 16px; font-size: 14px; letter-spacing: 1px; border-color: rgba(255,215,0,0.6); color: #ffd700; }
 .fuse-game { position: absolute; left: 50%; top: 50%; transform: translate(-50%,-50%); width: 420px; max-width: 80%; background: rgba(12,12,18,0.96); border: 2px solid #6b6f7a; border-radius: 10px; padding: 14px; font-family: 'Courier New', monospace; color: #eee; text-align: center; }
 .fg-title { color: #ffd700; letter-spacing: 2px; font-size: 16px; }
@@ -1118,6 +1135,10 @@ html, body {
       <button class="sd-close" id="sdChoice" onclick="goCellarFromDed()" style="display:none; margin-right:8px; border-color:rgba(255,215,0,0.6); color:#ffd700;">ХОРОШО, ТЫ МНЕ ТОЛЬКО ФОНАРИК ДАЙ</button>
       <button class="sd-close" onclick="closeShopDialog()">ЗАКРЫТЬ</button>
     </div>
+    <div class="shop-menu" id="shopMenu" style="display:none" onclick="event.stopPropagation()">
+      <button class="shop-btn shop-menu-btn" onclick="openQuestPanel()">📜 ЗАДАНИЯ</button>
+      <button class="shop-btn shop-menu-btn" onclick="openModRoulette()">🎰 РУЛЕТКА</button>
+    </div>
     <div class="shop-ctrl" id="shopCtrl" style="display:none" onclick="event.stopPropagation()">
       <button class="shop-btn" id="shopLeft" onpointerdown="shopKeys.left=true" onpointerup="shopKeys.left=false" onpointerleave="shopKeys.left=false" onpointercancel="shopKeys.left=false">◀</button>
       <button class="shop-btn" id="shopRight" onpointerdown="shopKeys.right=true" onpointerup="shopKeys.right=false" onpointerleave="shopKeys.right=false" onpointercancel="shopKeys.right=false">▶</button>
@@ -1141,6 +1162,31 @@ html, body {
       <div class="fg-title">РЕМОНТ ЩИТКА</div>
       <div class="fg-hint">Соедини провода одного цвета: сначала слева, потом справа</div>
       <div class="fg-rows" id="fuseRows"></div>
+    </div>
+  </div>
+
+  <!-- ОВЕРЛЕИ: задания Деда, рулетка модификаций, выбор модификации -->
+  <div class="mod-overlay" id="questPanel" onclick="closeQuestPanel()">
+    <div class="mod-box" onclick="event.stopPropagation()">
+      <div class="sd-name">ЗАДАНИЯ ДЕДА</div>
+      <div id="questList"></div>
+      <button class="menu-btn" onclick="closeQuestPanel()" style="margin-top:10px;">ЗАКРЫТЬ</button>
+    </div>
+  </div>
+  <div class="mod-overlay" id="modRoulette" onclick="closeModRoulette()">
+    <div class="mod-box" onclick="event.stopPropagation()">
+      <img src="ruletka_mods.png" alt="" class="mr-img">
+      <div class="sd-name">РУЛЕТКА МОДИФИКАЦИЙ</div>
+      <div id="mrText" class="mr-text">Цена прокрутки: 500 пиксель-коинов</div>
+      <button class="menu-btn" id="mrSpin" onclick="spinModRoulette()" style="margin-top:10px;">КРУТИТЬ (500)</button>
+      <button class="menu-btn" onclick="closeModRoulette()" style="margin-top:8px;">ЗАКРЫТЬ</button>
+    </div>
+  </div>
+  <div class="mod-overlay" id="modPicker" onclick="closeModPicker()">
+    <div class="mod-box" onclick="event.stopPropagation()">
+      <div class="sd-name" id="mpTitle">МОДИФИКАЦИИ</div>
+      <div id="mpList"></div>
+      <button class="menu-btn" onclick="closeModPicker()" style="margin-top:10px;">ЗАКРЫТЬ</button>
     </div>
   </div>
 
@@ -1551,6 +1597,10 @@ function loadData() {
       if (!merged.rouletteTickets) merged.rouletteTickets = {};
       if (!merged.skinLevels) merged.skinLevels = {};
       if (!merged.skinXp) merged.skinXp = {};
+      if (!merged.questState) merged.questState = {};
+      if (!merged.modInv) merged.modInv = {};
+      if (!merged.skinMods) merged.skinMods = {};
+      if (!merged.fogKills) merged.fogKills = 0;
       if (merged.currentSeason === undefined) merged.currentSeason = 0;
       return merged;
     }
@@ -2230,7 +2280,7 @@ function startCellarQuest(done) {
   function currentAction() {
     const x = st.player.x;
     if (!st.fuseDone && Math.abs(x - FUSE_X) < 110)
-      return { label: '🔧 РЕМОНТ ЩИТКА', at: FUSE_X, run: () => openFuseGame(() => { st.fuseDone = true; toast('Свет включён'); }) };
+      return { label: '🔧 РЕМОНТ ЩИТКА', at: FUSE_X, run: () => openFuseGame(() => { st.fuseDone = true; toast('Свет включён'); setQuest('fuse'); }) };
     if (st.fuseDone && !st.knife && Math.abs(x - KNIFE_X) < 110)
       return { label: '🔪 ПОДНЯТЬ НОЖ', at: KNIFE_X, run: () => { st.knife = true; toast('Нож у тебя'); } };
     const lastClear = !segAlive(SEGS - 1);
@@ -2348,6 +2398,7 @@ function startCellarQuest(done) {
       st.texts.push({ x: best.x, y: GROUND - 150, text: '-' + STRIKE_DMG, t: 0.9, color: '#ffffff' });
       if (best.hp <= 0) {
         best.alive = false;
+        data.fogKills = (data.fogKills || 0) + 1; if (data.fogKills >= 10) setQuest('fogs10'); saveData();
         st.texts.push({ x: best.x, y: GROUND - 190, text: 'ПОВЕРЖЕН!', t: 1.2, color: '#ffd700' });
         for (let i = 0; i < 16; i++) st.parts.push({ x: best.x, y: GROUND - 70, vx: (Math.random() - 0.5) * 420, vy: -Math.random() * 380 - 80, t: 0.7 + Math.random() * 0.4, c: i % 2 ? '#e53e3e' : '#fca5a5' });
         toast('Фог (5 ур.) повержен');
@@ -2364,9 +2415,8 @@ function startCellarQuest(done) {
     document.getElementById('fuseGame').style.display = 'none';
     window.removeEventListener('keydown', onKey); window.removeEventListener('keyup', onKeyUp);
     cellarKeys.left = false; cellarKeys.right = false;
-    data.pixelCoins = (data.pixelCoins || 0) + 1000; saveData();
+    setQuest('cellar'); pendingQuestPanel = true;
     roomMusicStop();
-    toast('Дед дал 1000 пиксель-коинов (тратятся только у него в магазине)');
     // Возвращаемся к Деду в комнату
     playShopIntro(() => { if (done) done(); });
   }
@@ -2483,6 +2533,7 @@ function playVoice(file) {
   } catch (e) {}
 }
 function openShopDialog() {
+  setQuest('talk');
   document.getElementById('shopDialogText').textContent = DED_LINE;
   playVoice('voice_ded.mp3');
   document.getElementById('sdChoice').style.display = 'inline-block';
@@ -2518,6 +2569,7 @@ function playShopIntro(done) {
   const ease = t => t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
   const ctrl = document.getElementById('shopCtrl');
   const talkBtn = document.getElementById('shopTalk');
+  const shopMenu = document.getElementById('shopMenu');
   const dialog = document.getElementById('shopDialog');
 
   let phase = 'game';
@@ -2579,11 +2631,13 @@ function playShopIntro(done) {
   shopIntroDone = done; shopIntroActive = true;
   document.getElementById('shopIntro').style.display = 'block';
   roomMusicSilence();
+  if (pendingQuestPanel) { pendingQuestPanel = false; setTimeout(openQuestPanel, 400); }
   startGame(performance.now());
 
   const loop = now => {
     if (!shopIntroActive) return;
     if (!t0) t0 = now;
+    const bgm = document.getElementById('bgMusic'); if (bgm && !bgm.paused) bgm.pause();
     if (phase === 'game') {
       const dt = Math.min(0.05, (now - lastNow) / 1000);
       lastNow = now;
@@ -2597,6 +2651,7 @@ function playShopIntro(done) {
       player.x = clamp(player.x, 90, 900);
       const near = Math.abs(player.x - DED_X) < 170 && dialog.style.display !== 'block';
       talkBtn.style.display = near ? 'block' : 'none';
+      shopMenu.style.display = dialog.style.display === 'block' ? 'none' : 'flex';
       octx.clearRect(0, 0, W, H);
       drawRoom();
       present(PIX_GAME);
@@ -2741,7 +2796,8 @@ function renderSkins() {
       '<div class="skin-name">' + skin.name + '</div>' +
       '<div class="skin-boost">x' + skinBoost(skin).toFixed(skin.levelable ? 1 : 0) + ' к донатам' + (skin.levelable && owned ? ' · ур. ' + skinLevel(skin.id) + '/' + MAX_SKIN_LEVEL : '') + '</div>' +
       '<div class="skin-status">' + (owned ? (isCurrent ? '✅ ВЫБРАН' : 'НАЖМИ ЧТОБЫ ВЫБРАТЬ') : '🔒 НЕ ОТКРЫТ') + '</div>' +
-      (owned && !isCurrent ? '<button class="skin-action" onclick="selectSkin(\'' + skin.id + '\')">ВЫБРАТЬ</button>' : '');
+      (owned && !isCurrent ? '<button class="skin-action" onclick="selectSkin(\'' + skin.id + '\')">ВЫБРАТЬ</button>' : '') +
+      (owned ? '<button class="skin-action skin-mod-btn" onclick="openModPicker(\'' + skin.id + '\')">МОД' + (modOf(skin.id) ? ': ' + modOf(skin.id).name : '') + '</button>' : '');
     grid.appendChild(card);
   });
 }
@@ -2750,6 +2806,130 @@ function selectSkin(id) {
   const skin = ALL_SKINS.find(s => s.id === id);
   showToast('✅ Скин выбран: ' + (skin ? skin.name : id));
   updateArmyMode();
+}
+
+// ---- Задания Деда ----
+const QUESTS = [
+  { id: 'talk', name: 'Поговори с Дедом', type: 'МИРНОЕ', reward: 100 },
+  { id: 'fuse', name: 'Почини щиток в погребе', type: 'МИРНОЕ', reward: 300 },
+  { id: 'cellar', name: 'Зачисти погреб и вернись к Деду', type: 'БОЙ', reward: 1000 },
+  { id: 'fogs10', name: 'Победи 10 фогов', type: 'БОЙ', reward: 500, target: 10 },
+];
+let pendingQuestPanel = false;
+function setQuest(id) {
+  if (data.questState[id]) return;
+  data.questState[id] = 'done'; saveData();
+  const q = QUESTS.find(x => x.id === id);
+  showToast('✅ Задание выполнено: ' + q.name);
+}
+function claimQuest(id) {
+  if (data.questState[id] !== 'done') return;
+  const q = QUESTS.find(x => x.id === id);
+  data.questState[id] = 'claimed';
+  data.pixelCoins = (data.pixelCoins || 0) + q.reward; saveData();
+  renderQuests();
+  showToast('+' + q.reward + ' пиксель-коинов');
+}
+function renderQuests() {
+  const list = document.getElementById('questList'); list.innerHTML = '';
+  QUESTS.forEach(q => {
+    const s = data.questState[q.id] || 'active';
+    let btn;
+    if (s === 'claimed') btn = '<button class="q-btn" disabled>ПОЛУЧЕНО</button>';
+    else if (s === 'done') btn = '<button class="q-btn" onclick="claimQuest(\'' + q.id + '\')">ПОЛУЧИТЬ</button>';
+    else btn = '<button class="q-btn" disabled>В ПРОЦЕССЕ</button>';
+    const check = s === 'active' ? '⬜' : '✅';
+    const prog = q.target ? ' (' + Math.min(data.fogKills || 0, q.target) + '/' + q.target + ')' : '';
+    const row = document.createElement('div'); row.className = 'q-row';
+    row.innerHTML = '<div class="q-check">' + check + '</div><div class="q-info"><div class="q-title">' + q.name + prog + '</div><div class="q-meta">' + q.type + ' · награда ' + q.reward + ' коинов</div></div>' + btn;
+    list.appendChild(row);
+  });
+}
+function openQuestPanel() { renderQuests(); document.getElementById('questPanel').style.display = 'flex'; }
+function closeQuestPanel() { document.getElementById('questPanel').style.display = 'none'; }
+
+// ---- Модификации скинов (рулетка у Деда) ----
+// chance — вес выпадения; boostAdd/boostMul — буст скина; xpMul — опыт за тап; pixel — пиксельный вид
+const MODS = [
+  { id: 'pixel', name: 'ПИКСЕЛЬНАЯ', tier: 'ЛЕГЕНДАРНАЯ', chance: 2, boostMul: 10, pixel: true, desc: 'скин становится пиксельным, буст ×10' },
+  { id: 'gold', name: 'ЗОЛОТАЯ', tier: 'ЭПИЧЕСКАЯ', chance: 6, boostMul: 2, desc: 'буст ×2' },
+  { id: 'frost', name: 'ЛЕДЯНАЯ', tier: 'РЕДКАЯ', chance: 14, boostAdd: 5, desc: '+5 к бусту' },
+  { id: 'neon', name: 'НЕОНОВАЯ', tier: 'РЕДКАЯ', chance: 14, xpMul: 2, desc: 'опыт за тап ×2' },
+  { id: 'dust', name: 'ПЫЛЬНАЯ', tier: 'ОБЫЧНАЯ', chance: 64, boostAdd: 1, desc: '+1 к бусту' },
+];
+const MOD_PRICE = 500;
+function modById(id) { return MODS.find(m => m.id === id); }
+function modOf(skinId) { return modById(data.skinMods[skinId]); }
+let mrBusy = false;
+function openModRoulette() {
+  document.getElementById('mrText').textContent = 'Цена прокрутки: ' + MOD_PRICE + ' пиксель-коинов';
+  document.getElementById('mrSpin').disabled = false;
+  document.getElementById('modRoulette').style.display = 'flex';
+}
+function closeModRoulette() { if (!mrBusy) document.getElementById('modRoulette').style.display = 'none'; }
+function pickModWeighted() {
+  const total = MODS.reduce((s, m) => s + m.chance, 0);
+  let r = Math.random() * total;
+  for (const m of MODS) { r -= m.chance; if (r <= 0) return m; }
+  return MODS[MODS.length - 1];
+}
+function spinModRoulette() {
+  if (mrBusy) return;
+  if ((data.pixelCoins || 0) < MOD_PRICE) { showToast('Не хватает пиксель-коинов'); return; }
+  data.pixelCoins -= MOD_PRICE; saveData();
+  mrBusy = true; document.getElementById('mrSpin').disabled = true;
+  const res = pickModWeighted();
+  const txt = document.getElementById('mrText');
+  let i = 0, delay = 60;
+  const tick = () => {
+    txt.textContent = MODS[Math.floor(Math.random() * MODS.length)].name;
+    i++;
+    if (i < 22) { delay *= 1.08; setTimeout(tick, delay); return; }
+    data.modInv[res.id] = (data.modInv[res.id] || 0) + 1; saveData();
+    txt.innerHTML = res.tier + ': ' + res.name + '<br>' + res.desc;
+    mrBusy = false;
+    const b = document.getElementById('mrSpin');
+    b.disabled = false; b.textContent = 'КРУТИТЬ ЕЩЁ (' + MOD_PRICE + ')';
+    showToast('Получена модификация: ' + res.name);
+  };
+  tick();
+}
+let mpSkin = null;
+function openModPicker(skinId) { mpSkin = skinId; renderModPicker(); document.getElementById('modPicker').style.display = 'flex'; }
+function closeModPicker() { document.getElementById('modPicker').style.display = 'none'; renderSkins(); }
+function renderModPicker() {
+  const skin = ALL_SKINS.find(s => s.id === mpSkin);
+  document.getElementById('mpTitle').textContent = 'МОДИФИКАЦИЯ: ' + (skin ? skin.name : '');
+  const cur = modOf(mpSkin);
+  let h = '<div class="mod-cur">Надето: ' + (cur ? cur.name + ' (' + cur.tier + ')' : 'ничего') + '</div>';
+  if (cur) h += '<button class="q-btn" onclick="unequipMod()">СНЯТЬ</button>';
+  h += '<div class="mod-sep">В ИНВЕНТАРЕ</div>';
+  let any = false;
+  MODS.forEach(m => {
+    const c = data.modInv[m.id] || 0;
+    if (c <= 0) return;
+    any = true;
+    h += '<div class="q-row"><div class="q-info"><div class="q-title">' + m.name + ' ×' + c + '</div><div class="q-meta">' + m.tier + ' · ' + m.desc + '</div></div><button class="q-btn" onclick="equipMod(\'' + m.id + '\')">НАДЕТЬ</button></div>';
+  });
+  if (!any) h += '<div class="q-meta">Пусто. Крути рулетку у Деда.</div>';
+  document.getElementById('mpList').innerHTML = h;
+}
+function equipMod(id) {
+  if (!mpSkin || !(data.modInv[id] > 0)) return;
+  const old = data.skinMods[mpSkin];
+  if (old) data.modInv[old] = (data.modInv[old] || 0) + 1;
+  data.modInv[id]--; if (data.modInv[id] <= 0) delete data.modInv[id];
+  data.skinMods[mpSkin] = id;
+  saveData(); if (data.currentSkin === mpSkin) updateHeadImage();
+  renderModPicker();
+}
+function unequipMod() {
+  if (!mpSkin || !data.skinMods[mpSkin]) return;
+  const id = data.skinMods[mpSkin];
+  delete data.skinMods[mpSkin];
+  data.modInv[id] = (data.modInv[id] || 0) + 1;
+  saveData(); if (data.currentSkin === mpSkin) updateHeadImage();
+  renderModPicker();
 }
 
 function openRoulettes() {
@@ -3143,7 +3323,7 @@ function addTapSkinXp() {
   if (!data.skinXp) data.skinXp = {};
   let lvl = skinLevel(id);
   if (lvl >= MAX_SKIN_LEVEL) return;
-  data.skinXp[id] = (data.skinXp[id] || 0) + 1;
+  data.skinXp[id] = (data.skinXp[id] || 0) + ((modOf(id) || {}).xpMul || 1);
   let leveled = false;
   while (lvl < MAX_SKIN_LEVEL && data.skinXp[id] >= skinXpNeeded(lvl)) {
     data.skinXp[id] -= skinXpNeeded(lvl);
@@ -3157,8 +3337,36 @@ function addTapSkinXp() {
   }
 }
 function levelBoost(lvl) { return 20 + (lvl - 1) * (20 / (MAX_SKIN_LEVEL - 1)); }
-function skinBoost(skin) { return skin.levelable ? levelBoost(skinLevel(skin.id)) : skin.boost; }
-function skinFile(skin) { return (skin.levelable && skinLevel(skin.id) >= MAX_SKIN_LEVEL) ? skin.fatFile : skin.file; }
+function skinBoost(skin) {
+  let b = skin.levelable ? levelBoost(skinLevel(skin.id)) : skin.boost;
+  const m = modOf(skin.id);
+  if (m) { if (m.boostAdd) b += m.boostAdd; if (m.boostMul) b *= m.boostMul; }
+  return b;
+}
+const pixelCache = {};
+// Пиксельный вид: уменьшаем картинку до 40 px и растягиваем без сглаживания
+function pixelSrc(src) {
+  if (pixelCache[src]) return pixelCache[src];
+  const im = new Image();
+  im.onload = () => {
+    try {
+      const sm = document.createElement('canvas'); sm.width = 40; sm.height = 40;
+      sm.getContext('2d').drawImage(im, 0, 0, 40, 40);
+      const out = document.createElement('canvas'); out.width = im.width; out.height = im.height;
+      const oc = out.getContext('2d'); oc.imageSmoothingEnabled = false;
+      oc.drawImage(sm, 0, 0, out.width, out.height);
+      pixelCache[src] = out.toDataURL();
+      renderSkins(); updateHeadImage();
+    } catch (e) {}
+  };
+  im.src = src;
+  return src;
+}
+function skinFile(skin) {
+  const base = (skin.levelable && skinLevel(skin.id) >= MAX_SKIN_LEVEL) ? skin.fatFile : skin.file;
+  const m = modOf(skin.id);
+  return (m && m.pixel) ? pixelSrc(base) : base;
+}
 function getCurrentBoost() {
   const skin = ALL_SKINS.find(s => s.id === data.currentSkin);
   let boost = skin ? skinBoost(skin) : 1;
