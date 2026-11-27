@@ -2307,7 +2307,7 @@ function renderModPicker() {
     const c = data.modInv[m.id] || 0;
     if (c <= 0) return;
     any = true;
-    h += '<div class="q-row"><div class="q-info"><div class="q-title">' + m.name + ' ×' + c + '</div><div class="q-meta">' + m.tier + ' · ' + m.desc + '</div></div><button class="q-btn" onclick="equipMod(\'' + m.id + '\')">НАДЕТЬ</button></div>';
+    h += '<div class="q-row"><div class="q-info"><div class="q-title">' + m.name + ' · штук: ' + c + '</div><div class="q-meta">' + m.tier + ' · ' + m.desc + '</div></div><button class="q-btn" onclick="equipMod(\'' + m.id + '\')">НАДЕТЬ</button></div>';
   });
   if (!any) h += '<div class="q-meta">Пусто. Крути рулетку в коллекции.</div>';
   document.getElementById('mpList').innerHTML = h;
