@@ -2096,6 +2096,13 @@ function roomMusicStart() {
     const bg = document.getElementById('bgMusic'); if (bg) bg.pause();
   } catch (e) {}
 }
+// В комнате Деда музыки нет: ни подвала, ни тапов
+function roomMusicSilence() {
+  try {
+    if (roomAudio) roomAudio.pause();
+    const bg = document.getElementById('bgMusic'); if (bg) bg.pause();
+  } catch (e) {}
+}
 function roomMusicStop() {
   try {
     if (roomAudio) roomAudio.pause();
@@ -2378,6 +2385,8 @@ function startCellarQuest(done) {
   const loop = now => {
     if (!cellarActive) return;
     const dt = Math.min(0.05, (now - last) / 1000); last = now;
+    // в подвале играет только музыка подвала
+    const bgm = document.getElementById('bgMusic'); if (bgm && !bgm.paused) bgm.pause();
     const p = st.player;
     const dirx = (cellarKeys.right ? 1 : 0) - (cellarKeys.left ? 1 : 0);
     if (dirx && document.getElementById('fuseGame').style.display !== 'block') {
@@ -2538,7 +2547,7 @@ function playShopIntro(done) {
   }
   shopIntroDone = done; shopIntroActive = true;
   document.getElementById('shopIntro').style.display = 'block';
-  roomMusicStart();
+  roomMusicSilence();
   startGame(performance.now());
 
   const loop = now => {
