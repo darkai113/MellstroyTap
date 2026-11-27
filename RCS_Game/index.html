@@ -883,7 +883,7 @@ html, body {
 .cellar-strike { border-color: rgba(229,62,62,0.7); color: #fca5a5; }
 .shop-menu { position: absolute; left: 12px; top: 12px; display: flex; flex-direction: column; gap: 8px; }
 .shop-menu-btn { width: auto; height: 44px; padding: 0 14px; font-size: 13px; border-color: rgba(255,215,0,0.6); color: #ffd700; }
-.mod-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.72); display: none; align-items: center; justify-content: center; z-index: 200; padding: 16px; box-sizing: border-box; }
+.mod-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.72); display: none; align-items: center; justify-content: center; z-index: 9500; padding: 16px; box-sizing: border-box; }
 .mod-box { width: min(92vw, 420px); max-height: 92vh; overflow: auto; background: #0e0e14; border: 2px solid #6b6f7a; border-radius: 10px; padding: 14px; font-family: 'Courier New', monospace; color: #eee; box-sizing: border-box; }
 .mod-box .sd-name { color: #ffd700; font-weight: 900; letter-spacing: 1px; margin-bottom: 8px; }
 .mr-img { width: 100%; border-radius: 8px; image-rendering: pixelated; margin-bottom: 8px; }
@@ -2535,9 +2535,10 @@ function playVoice(file) {
 }
 function openShopDialog() {
   setQuest('talk');
-  document.getElementById('shopDialogText').textContent = DED_LINE;
-  playVoice('voice_ded.mp3');
-  document.getElementById('sdChoice').style.display = 'inline-block';
+  const cellarDone = !!data.questState.cellar;
+  document.getElementById('shopDialogText').textContent = cellarDone ? 'Спасибо, внучек! Нечисть в погребе побеждена, дедушка тебе благодарен.' : DED_LINE;
+  if (!cellarDone) playVoice('voice_ded.mp3');
+  document.getElementById('sdChoice').style.display = cellarDone ? 'none' : 'inline-block';
   document.getElementById('shopDialog').style.display = 'block';
   document.getElementById('shopTalk').style.display = 'none';
 }
@@ -2653,6 +2654,7 @@ function playShopIntro(done) {
       const near = Math.abs(player.x - DED_X) < 170 && dialog.style.display !== 'block';
       talkBtn.style.display = near ? 'block' : 'none';
       shopMenu.style.display = dialog.style.display === 'block' ? 'none' : 'flex';
+      document.getElementById('shopIntroSkip').style.display = 'none';
       octx.clearRect(0, 0, W, H);
       drawRoom();
       present(PIX_GAME);
