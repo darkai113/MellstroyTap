@@ -2170,13 +2170,13 @@ function selectSkin(id) {
 }
 
 // ---- Модификации скинов (рулетка за монеты) ----
-// chance — вес выпадения; boostAdd/boostMul — буст скина; xpMul — опыт за тап; pixel — пиксельный вид
+// chance — вес выпадения; boostMul — множитель текущего буста скина; pixel — пиксельный вид
 const MODS = [
   { id: 'pixel', name: 'ПИКСЕЛЬНАЯ', tier: 'ЛЕГЕНДАРНАЯ', chance: 2, boostMul: 10, pixel: true, desc: 'скин становится пиксельным, буст ×10' },
-  { id: 'gold', name: 'ЗОЛОТАЯ', tier: 'ЭПИЧЕСКАЯ', chance: 6, boostMul: 2, desc: 'буст ×2' },
-  { id: 'frost', name: 'ЛЕДЯНАЯ', tier: 'РЕДКАЯ', chance: 14, boostAdd: 5, desc: '+5 к бусту' },
-  { id: 'neon', name: 'НЕОНОВАЯ', tier: 'РЕДКАЯ', chance: 14, xpMul: 2, desc: 'опыт за тап ×2' },
-  { id: 'dust', name: 'ПЫЛЬНАЯ', tier: 'ОБЫЧНАЯ', chance: 64, boostAdd: 1, desc: '+1 к бусту' },
+  { id: 'gold', name: 'ЗОЛОТАЯ', tier: 'ЭПИЧЕСКАЯ', chance: 6, boostMul: 6, desc: 'буст ×6' },
+  { id: 'frost', name: 'ЛЕДЯНАЯ', tier: 'РЕДКАЯ', chance: 14, boostMul: 4, desc: 'буст ×4' },
+  { id: 'neon', name: 'НЕОНОВАЯ', tier: 'РЕДКАЯ', chance: 14, boostMul: 3, desc: 'буст ×3' },
+  { id: 'dust', name: 'ПЫЛЬНАЯ', tier: 'ОБЫЧНАЯ', chance: 64, boostMul: 2, desc: 'буст ×2' },
 ];
 const MOD_PRICE = 100000000;
 function modById(id) { return MODS.find(m => m.id === id); }
@@ -2646,7 +2646,7 @@ function addTapSkinXp() {
   if (!data.skinXp) data.skinXp = {};
   let lvl = skinLevel(id);
   if (lvl >= MAX_SKIN_LEVEL) return;
-  data.skinXp[id] = (data.skinXp[id] || 0) + ((modOf(id) || {}).xpMul || 1);
+  data.skinXp[id] = (data.skinXp[id] || 0) + 1;
   let leveled = false;
   while (lvl < MAX_SKIN_LEVEL && data.skinXp[id] >= skinXpNeeded(lvl)) {
     data.skinXp[id] -= skinXpNeeded(lvl);
@@ -2663,7 +2663,7 @@ function levelBoost(lvl) { return 20 + (lvl - 1) * (20 / (MAX_SKIN_LEVEL - 1)); 
 function skinBoost(skin) {
   let b = skin.levelable ? levelBoost(skinLevel(skin.id)) : skin.boost;
   const m = modOf(skin.id);
-  if (m) { if (m.boostAdd) b += m.boostAdd; if (m.boostMul) b *= m.boostMul; }
+  if (m && m.boostMul) b *= m.boostMul;
   return b;
 }
 const pixelCache = {};
