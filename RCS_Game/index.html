@@ -1099,7 +1099,7 @@ html, body {
     <button class="menu-btn" onclick="closeAnnounce()" style="margin-top:12px;">← НАЗАД</button>
   </div>
 
-  <!-- ОВЕРЛЕИ: задания Деда, рулетка модификаций, выбор модификации -->
+  <!-- ОВЕРЛЕИ: рулетка модификаций и выбор модификации -->
   <div class="mod-overlay" id="modRoulette" onclick="closeModRoulette()">
     <div class="mod-box" onclick="event.stopPropagation()">
       <img src="ruletka_mods.jpg" alt="" class="mr-img">
@@ -2234,7 +2234,7 @@ function renderModPicker() {
     any = true;
     h += '<div class="q-row"><div class="q-info"><div class="q-title">' + m.name + ' ×' + c + '</div><div class="q-meta">' + m.tier + ' · ' + m.desc + '</div></div><button class="q-btn" onclick="equipMod(\'' + m.id + '\')">НАДЕТЬ</button></div>';
   });
-  if (!any) h += '<div class="q-meta">Пусто. Крути рулетку у Деда.</div>';
+  if (!any) h += '<div class="q-meta">Пусто. Крути рулетку в коллекции.</div>';
   document.getElementById('mpList').innerHTML = h;
 }
 function equipMod(id) {
