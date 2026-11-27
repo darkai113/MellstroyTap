@@ -877,7 +877,8 @@ html, body {
 .shop-btn { width: 64px; height: 56px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.25); background: rgba(20,20,28,0.8); color: #fff; font-size: 22px; font-family: inherit; touch-action: none; }
 .cellar-ctrl { right: auto; justify-content: flex-start; gap: 10px; }
 .cellar-right { position: absolute; right: 12px; bottom: 12px; display: flex; flex-direction: column; align-items: flex-end; gap: 10px; pointer-events: auto; }
-.cellar-right .shop-btn { width: auto; height: 52px; padding: 0 18px; font-size: 14px; letter-spacing: 1px; }
+.cellar-right .shop-btn { width: auto; height: 66px; padding: 0 26px; font-size: 17px; letter-spacing: 1px; }
+.cellar-ctrl .shop-btn { width: 80px; height: 70px; font-size: 28px; }
 .cellar-act { border-color: rgba(255,215,0,0.6); color: #ffd700; }
 .cellar-strike { border-color: rgba(229,62,62,0.7); color: #fca5a5; }
 .shop-act { position: absolute; top: 12px; right: 12px; width: auto; height: 48px; padding: 0 16px; font-size: 14px; letter-spacing: 1px; border-color: rgba(255,215,0,0.6); color: #ffd700; }
@@ -2161,10 +2162,10 @@ function cellarJump() { if (cellarActive && cellarState && cellarState.jump) cel
 
 function startCellarQuest(done) {
   const W = 960, H = 540, GROUND = 400, PIX = 3;
-  const SEG_W = 900, SEGS = 4, WORLD = SEG_W * SEGS;   // seg 0 — комната со щитком и ножом, seg 1..3 — коридоры с фогами
+  const SEG_W = 1200, SEGS = 4, WORLD = SEG_W * SEGS;   // seg 0 — комната со щитком и ножом, seg 1..3 — коридоры с фогами
   const FUSE_X = 300, KNIFE_X = 760, EXIT_X = 60;
   const FOG_HP = 10, STRIKE_DMG = 2, STRIKE_RANGE = 160, STRIKE_CD = 0.4;
-  const FOG_AGGRO = 620, FOG_SPEED = 150, FOG_ATTACK = 85, FOG_CD = 1.0, PLAYER_HP = 5;
+  const FOG_AGGRO = 800, FOG_SPEED = 170, FOG_ATTACK = 95, FOG_CD = 1.2, PLAYER_HP = 5;
   const cv = document.getElementById('cellarCanvas');
   cv.width = W; cv.height = H;
   const ctx = cv.getContext('2d');
@@ -2190,13 +2191,13 @@ function startCellarQuest(done) {
       const x = rnd(x0, x1);
       if (xs.every(v => Math.abs(v - x) > 130)) xs.push(x);
     }
-    return xs.map(x => ({ x, seg, hp: FOG_HP, max: FOG_HP, alive: true, flash: 0, cool: 0.8 }));
+    return xs.map(x => ({ x, seg, hp: FOG_HP, max: FOG_HP, alive: true, flash: 0, cool: 0.8, off: 0, retreat: 0 }));
   }
   const st = {
     player: { x: 120, dir: 1, walk: 0, y: 0, vy: 0 },
     hp: PLAYER_HP, hurt: 0, strikeCd: 0, swing: 0,
     fuseDone: false, knife: false, phase: 'out',
-    fogs: [], onAct: null, strike: null, jump: null
+    fogs: [], texts: [], parts: [], shake: 0, onAct: null, strike: null, jump: null
   };
   function respawnAll() {
     st.fogs = [];
@@ -2221,7 +2222,7 @@ function startCellarQuest(done) {
   function die() {
     toast('Нечисть тебя побила... ты очнулся у щитка');
     st.player.x = 120; st.player.y = 0; st.player.vy = 0;
-    st.hp = PLAYER_HP; st.phase = 'out';
+    st.hp = PLAYER_HP; st.phase = 'out'; st.texts = []; st.parts = [];
     respawnAll();
   }
 
@@ -2233,7 +2234,7 @@ function startCellarQuest(done) {
     if (st.fuseDone && !st.knife && Math.abs(x - KNIFE_X) < 110)
       return { label: '🔪 ПОДНЯТЬ НОЖ', at: KNIFE_X, run: () => { st.knife = true; toast('Нож у тебя'); } };
     const lastClear = !segAlive(SEGS - 1);
-    if (st.phase === 'out' && st.knife && lastClear && x > WORLD - 260)
+    if (st.phase === 'out' && st.knife && lastClear && x > WORLD - 300)
       return { label: '↩ НАЗАД К ДЕДУ', at: x, run: () => { st.phase = 'back'; respawnAll(); toast('Нечисть вернулась...'); } };
     const allDead = !st.fogs.some(f => f.alive);
     if (st.phase === 'back' && allDead && x < 200)
@@ -2272,7 +2273,7 @@ function startCellarQuest(done) {
     const sz = 120;
     for (const e of st.fogs) {
       if (!e.alive) continue;
-      const sway = Math.sin(performance.now() / 300 + e.x) * 4, ex = e.x - cam;
+      const sway = Math.sin(performance.now() / 300 + e.x) * 4, ex = e.x + e.off - cam;
       octx.save();
       if (e.flash > 0) octx.globalAlpha = 0.5 + 0.5 * Math.sin(e.flash * 30);
       if (fogImg.complete && fogImg.naturalWidth) octx.drawImage(fogImg, ex - sz / 2, GROUND - sz + sway, sz, sz);
@@ -2343,8 +2344,14 @@ function startCellarQuest(done) {
     }
     st.strikeCd = STRIKE_CD; st.swing = 0.25;
     if (best) {
-      best.hp -= STRIKE_DMG; best.flash = 1;
-      if (best.hp <= 0) { best.alive = false; toast('Фог (5 ур.) повержен'); }
+      best.hp -= STRIKE_DMG; best.flash = 1; best.retreat = 0;
+      st.texts.push({ x: best.x, y: GROUND - 150, text: '-' + STRIKE_DMG, t: 0.9, color: '#ffffff' });
+      if (best.hp <= 0) {
+        best.alive = false;
+        st.texts.push({ x: best.x, y: GROUND - 190, text: 'ПОВЕРЖЕН!', t: 1.2, color: '#ffd700' });
+        for (let i = 0; i < 16; i++) st.parts.push({ x: best.x, y: GROUND - 70, vx: (Math.random() - 0.5) * 420, vy: -Math.random() * 380 - 80, t: 0.7 + Math.random() * 0.4, c: i % 2 ? '#e53e3e' : '#fca5a5' });
+        toast('Фог (5 ур.) повержен');
+      }
     }
   }
   st.strike = strike;
@@ -2402,19 +2409,31 @@ function startCellarQuest(done) {
     for (const f of st.fogs) {
       if (!f.alive) continue;
       if (f.flash > 0) f.flash = Math.max(0, f.flash - dt * 4);
-      const dx = p.x - f.x, d = Math.abs(dx);
+      f.off -= f.off * Math.min(1, dt * 8);
+      const dx = p.x - f.x, d = Math.abs(dx), sg = Math.sign(dx) || 1;
       const inSeg = Math.floor(p.x / SEG_W) === f.seg;
-      // фог замечает героя в своём коридоре и идёт к нему
-      if (inSeg && d < FOG_AGGRO && d > FOG_ATTACK) {
-        f.x += Math.sign(dx) * Math.min(FOG_SPEED * dt, d - FOG_ATTACK);
+      if (f.retreat > 0) {
+        // отскок после удара: фог отходит и готовится снова
+        f.retreat -= dt; f.x -= sg * 130 * dt;
+      } else if (inSeg && d < FOG_AGGRO && d > FOG_ATTACK) {
+        // фог замечает героя в своём коридоре и идёт к нему
+        f.x += sg * Math.min(FOG_SPEED * dt, d - FOG_ATTACK);
       }
       f.x = clamp(f.x, f.seg * SEG_W + 60, (f.seg + 1) * SEG_W - 60);
       f.cool -= dt;
-      if (inSeg && Math.abs(p.x - f.x) < FOG_ATTACK && f.cool <= 0) {
-        f.cool = FOG_CD; st.hp -= 1; st.hurt = 0.4;
+      if (inSeg && d < FOG_ATTACK && f.cool <= 0 && f.retreat <= 0) {
+        // выпад и удар, затем отскок
+        f.cool = FOG_CD; f.off = sg * 34; f.retreat = 0.6;
+        st.hp -= 1; st.hurt = 0.4; st.shake = 0.35;
+        st.texts.push({ x: p.x, y: GROUND - 150, text: '-1', t: 0.9, color: '#ff6b6b' });
         if (st.hp <= 0) { die(); break; }
       }
     }
+    st.shake = Math.max(0, st.shake - dt);
+    for (const t of st.texts) t.t -= dt;
+    st.texts = st.texts.filter(t => t.t > 0);
+    for (const q of st.parts) { q.x += q.vx * dt; q.y += q.vy * dt; q.vy += 900 * dt; q.t -= dt; }
+    st.parts = st.parts.filter(q => q.t > 0);
     st.strikeCd = Math.max(0, st.strikeCd - dt);
     st.swing = Math.max(0, st.swing - dt);
     st.hurt = Math.max(0, st.hurt - dt);
@@ -2424,7 +2443,19 @@ function startCellarQuest(done) {
     if (a) actBtn.textContent = a.label;
     strikeBtn.style.visibility = st.knife ? 'visible' : 'hidden';
     octx.clearRect(0, 0, W, H);
+    const shx = st.shake > 0 ? (Math.random() - 0.5) * st.shake * 24 : 0;
+    const shy = st.shake > 0 ? (Math.random() - 0.5) * st.shake * 12 : 0;
+    octx.save(); octx.translate(shx, shy);
     drawCellar(cam);
+    octx.textAlign = 'center';
+    for (const t of st.texts) {
+      octx.globalAlpha = Math.max(0, Math.min(1, t.t / 0.9));
+      octx.font = 'bold 22px Arial'; octx.fillStyle = t.color;
+      octx.fillText(t.text, t.x - cam, t.y - (0.9 - t.t) * 40);
+    }
+    octx.globalAlpha = 1;
+    for (const q of st.parts) { octx.fillStyle = q.c; octx.fillRect(q.x - cam, q.y, 6, 6); }
+    octx.restore();
     drawPrompt(a, cam);
     present();
     cellarRaf = requestAnimationFrame(loop);
