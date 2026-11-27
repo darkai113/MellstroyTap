@@ -1035,7 +1035,6 @@ html, body {
   <!-- СКИНЫ -->
   <div class="screen" id="skinsScreen">
     <div class="title" style="font-size:28px;">🎨 КОЛЛЕКЦИЯ</div>
-    <button class="menu-btn" onclick="openModRoulette()" style="margin-bottom:10px; border-color: rgba(155,93,229,0.7); color: #c9a2ff;">🎰 РУЛЕТКА МОДИФИКАЦИЙ · 100 000 000</button>
     <div class="collection-tabs">
       <button class="collection-tab active" id="tabCommon" onclick="switchCollection('common')">ОБЫЧНЫЕ</button>
       <button class="collection-tab" id="tabMitish" onclick="switchCollection('mitish')">МЫТИЩИ</button>
@@ -1106,15 +1105,6 @@ html, body {
   </div>
 
   <!-- ОВЕРЛЕИ: рулетка модификаций и выбор модификации -->
-  <div class="mod-overlay" id="modRoulette" onclick="closeModRoulette()">
-    <div class="mod-box" onclick="event.stopPropagation()">
-      <div class="mr-stage"><img src="ruletka_mods.jpg" alt="" class="mr-img"><div class="mr-wheel" id="mrWheel"></div><div class="mr-ptr"></div></div>
-      <div class="sd-name">РУЛЕТКА МОДИФИКАЦИЙ</div>
-      <div id="mrText" class="mr-text"></div>
-      <button class="menu-btn" id="mrSpin" onclick="spinModRoulette()" style="margin-top:10px;">КРУТИТЬ</button>
-      <button class="menu-btn" onclick="closeModRoulette()" style="margin-top:8px;">ЗАКРЫТЬ</button>
-    </div>
-  </div>
   <div class="mod-overlay" id="modPicker" onclick="closeModPicker()">
     <div class="mod-box" onclick="event.stopPropagation()">
       <div class="sd-name" id="mpTitle">МОДИФИКАЦИИ</div>
@@ -2187,64 +2177,120 @@ const MODS = [
 const MOD_PRICE = 100000000;
 function modById(id) { return MODS.find(m => m.id === id); }
 function modOf(skinId) { return modById(data.skinMods[skinId]); }
-let mrBusy = false;
-let mrAngle = 0;
-const MR_COLORS = ['#ffcf40', '#8a3ffc', '#2ec8e8', '#ff4fa0', '#8a8f99'];
-const MR_EMO = { pixel: '🖌️', gold: '💰', frost: '❄️', neon: '⚡', dust: '🧱' };
-// Порядок секторов по часовой стрелке от верха: как в картинке
-const MR_ORDER = ['pixel', 'gold', 'frost', 'neon', 'dust'];
-function buildModWheel() {
-  const w = document.getElementById('mrWheel');
-  w.style.background = 'conic-gradient(' + MR_COLORS.map((c, i) => c + ' ' + (i * 72) + 'deg ' + ((i + 1) * 72) + 'deg').join(', ') + ')';
-  w.innerHTML = '';
-  MR_ORDER.forEach((id, i) => {
-    const m = modById(id);
-    const sec = document.createElement('div'); sec.className = 'mr-sec';
-    sec.style.transform = 'rotate(' + (36 + i * 72) + 'deg)';
-    sec.innerHTML = '<div class="mr-lbl"><span class="e">' + MR_EMO[id] + '</span>' + m.name + '</div>';
-    w.appendChild(sec);
-  });
+// ---- Рулетка модификаций: карточка в списке рулеток, спин тем же аниматором ----
+const MOD_EMO = { pixel: '🖌️', gold: '💰', frost: '❄️', neon: '⚡', dust: '🧱' };
+const modIconCache = {};
+function modIconUrl(id) {
+  if (modIconCache[id]) return modIconCache[id];
+  const c = document.createElement('canvas'); c.width = 128; c.height = 128;
+  const x = c.getContext('2d');
+  x.fillStyle = '#14141c'; x.beginPath(); x.arc(64, 64, 62, 0, Math.PI * 2); x.fill();
+  x.font = '76px "Segoe UI Emoji", "Apple Color Emoji", "Noto Color Emoji", sans-serif';
+  x.textAlign = 'center'; x.textBaseline = 'middle';
+  x.fillText(MOD_EMO[id] || '✨', 64, 68);
+  return (modIconCache[id] = c.toDataURL());
 }
-function mrBalanceText() { return 'Монеты: ' + (data.coins || 0).toLocaleString() + ' · прокрутка ' + MOD_PRICE.toLocaleString(); }
-function openModRoulette() {
-  buildModWheel();
-  document.getElementById('mrText').textContent = mrBalanceText();
-  document.getElementById('mrSpin').disabled = false;
-  document.getElementById('modRoulette').style.display = 'flex';
-}
-function closeModRoulette() { if (!mrBusy) document.getElementById('modRoulette').style.display = 'none'; }
+function modRingItems() { return MODS.map(m => ({ id: m.id, name: m.name, file: modIconUrl(m.id), chance: m.chance })); }
 function pickModWeighted() {
   const total = MODS.reduce((s, m) => s + m.chance, 0);
   let r = Math.random() * total;
   for (const m of MODS) { r -= m.chance; if (r <= 0) return m; }
   return MODS[MODS.length - 1];
 }
-function spinModRoulette() {
-  if (mrBusy) return;
-  if ((data.coins || 0) < MOD_PRICE) { showToast('Не хватает монет: нужно ' + MOD_PRICE.toLocaleString()); return; }
-  data.coins -= MOD_PRICE; saveData(); updateUI();
-  mrBusy = true;
-  const spinBtn = document.getElementById('mrSpin');
-  spinBtn.disabled = true;
-  const txt = document.getElementById('mrText');
-  txt.textContent = 'Крутится...';
-  const res = pickModWeighted();
-  const idx = MR_ORDER.indexOf(res.id);
-  // сектор результата встаёт под стрелку (сверху), с небольшим разбросом внутри сектора
-  const want = -(36 + idx * 72) + (Math.random() * 2 - 1) * 22;
-  const cur = mrAngle;
-  const diff = ((want - cur) % 360 + 360) % 360;
-  mrAngle = cur + 360 * 5 + diff;
-  const w = document.getElementById('mrWheel');
-  w.style.transition = 'transform 4.6s cubic-bezier(0.12, 0.62, 0.08, 1)';
-  w.style.transform = 'rotate(' + mrAngle + 'deg)';
+function renderModCard(list) {
+  const qty = rouletteQty.mods || 1;
+  const tickets = data.rouletteTickets.mods || 0;
+  const cost = MOD_PRICE * qty;
+  const card = document.createElement('div');
+  card.className = 'roulette-card';
+  card.innerHTML =
+    '<img src="ruletka_mods.jpg" alt="Модификации" onerror="this.src=\'logo.png\'">' +
+    '<div class="r-info">' +
+      '<div class="r-name">Модификации</div>' +
+      '<div class="r-desc">' + MODS.length + ' модификаций · буст скина</div>' +
+      '<div class="r-price">💰 ' + MOD_PRICE.toLocaleString() + ' за прокрутку</div>' +
+      '<div class="r-desc">🎟 Прокруток: ' + tickets + '</div>' +
+      '<div class="r-qty">' +
+        '<button onclick="rouletteQtyChange(\'mods\', -1)">−</button>' +
+        '<span>' + qty + '</span>' +
+        '<button onclick="rouletteQtyChange(\'mods\', 1)">+</button>' +
+      '</div>' +
+      '<div class="r-actions">' +
+        '<button ' + (spinning ? 'disabled' : '') + ' onclick="buyModSpins()">КУПИТЬ за ' + cost.toLocaleString() + '</button>' +
+        '<button ' + (tickets <= 0 || spinning ? 'disabled' : '') + ' onclick="openModSpins(' + qty + ')">ОТКРЫТЬ ' + Math.min(qty, tickets) + '</button>' +
+      '</div>' +
+    '</div>';
+  list.appendChild(card);
+}
+function buyModSpins() {
+  const n = rouletteQty.mods || 1;
+  const cost = MOD_PRICE * n;
+  if (data.coins < cost) { showToast('❌ Не хватает монет'); return; }
+  data.coins -= cost;
+  data.rouletteTickets.mods = (data.rouletteTickets.mods || 0) + n;
+  saveData(); updateUI(); renderRoulettes();
+}
+function openModSpins(n) {
+  if (spinning) return;
+  if ((data.rouletteTickets.mods || 0) <= 0) { showToast('🎟 Нет прокруток, сначала купи'); return; }
+  let left = Math.min(n, data.rouletteTickets.mods);
+  const next = () => {
+    if (left <= 0 || (data.rouletteTickets.mods || 0) <= 0) return;
+    left--;
+    data.rouletteTickets.mods--; saveData();
+    runModSpin((left > 0 && data.rouletteTickets.mods > 0) ? next : null);
+  };
+  next();
+}
+let mrAngle = 0;
+function runModSpin(onDone) {
+  resetAllSounds();
+  spinning = true;
+  const bgMusic = document.getElementById('bgMusic'); if (bgMusic) bgMusic.pause();
+  const rageMusic = document.getElementById('rageMusic'); if (rageMusic) rageMusic.pause();
+  const overlay = document.getElementById('rouletteOverlay');
+  const ring = document.getElementById('skinsRing');
+  const result = document.getElementById('rouletteResult');
+  const closeBtn = document.getElementById('rouletteClose');
+  const items = modRingItems();
+  createSkinsRing(items);
+  result.classList.remove('show');
+  closeBtn.style.display = 'none';
+  overlay.classList.add('show');
+  const spinSound = document.getElementById('spinSound');
+  try { spinSound.pause(); spinSound.currentTime = 0; spinSound.volume = data.sfxVolume; spinSound.loop = true; spinSound.play().catch(() => {}); } catch (e) {}
+  const pick = pickModWeighted();
+  const idx = items.findIndex(it => it.id === pick.id);
+  const segW = 360 / items.length;
+  const landAngle = ((360 - (idx * segW + segW / 2)) % 360 + 360) % 360;
+  const laps = 5;
+  ring.style.animation = 'none'; ring.style.transition = 'none'; ring.style.transform = 'rotate(0deg)';
+  void ring.offsetWidth;
+  ring.style.transition = 'transform 1.6s cubic-bezier(0.55, 0, 1, 0.45)';
+  ring.style.transform = 'rotate(' + (laps * 360) + 'deg)';
   setTimeout(() => {
-    data.modInv[res.id] = (data.modInv[res.id] || 0) + 1; saveData();
-    txt.innerHTML = res.tier + ': ' + res.name + '<br>' + res.desc;
-    mrBusy = false;
-    spinBtn.disabled = false; spinBtn.textContent = 'КРУТИТЬ ЕЩЁ';
-    showToast('Получена модификация: ' + res.name);
-  }, 4700);
+    ring.style.transition = 'transform 4s cubic-bezier(0.15, 0.85, 0.2, 1)';
+    ring.style.transform = 'rotate(' + (laps * 360 + 360 + landAngle) + 'deg)';
+  }, 1600);
+  setTimeout(() => {
+    try { spinSound.pause(); spinSound.currentTime = 0; } catch (e) {}
+    data.modInv[pick.id] = (data.modInv[pick.id] || 0) + 1; saveData();
+    document.getElementById('resultImg').src = modIconUrl(pick.id);
+    document.getElementById('resultName').textContent = pick.name;
+    document.getElementById('resultStatus').textContent = '🎉 МОДИФИКАЦИЯ · ' + pick.tier;
+    document.getElementById('resultStatus').style.color = '#4ade80';
+    document.getElementById('resultComp').textContent = pick.desc;
+    playDonateSfx();
+    result.classList.add('show');
+    spinning = false;
+    updateUI();
+    if (onDone) {
+      setTimeout(() => { result.classList.remove('show'); onDone(); }, 1500);
+    } else {
+      closeBtn.style.display = 'block';
+      renderRoulettes();
+    }
+  }, 5700);
 }
 let mpSkin = null;
 function openModPicker(skinId) { mpSkin = skinId; renderModPicker(); document.getElementById('modPicker').style.display = 'flex'; }
@@ -2324,6 +2370,7 @@ function renderRoulettes() {
       '</div>';
     list.appendChild(card);
   });
+  renderModCard(list);
 }
 function buySpins(key) {
   const c = COLLECTIONS[key];
