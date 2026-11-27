@@ -2864,8 +2864,9 @@ const MOD_PRICE = 500;
 function modById(id) { return MODS.find(m => m.id === id); }
 function modOf(skinId) { return modById(data.skinMods[skinId]); }
 let mrBusy = false;
+function mrBalanceText() { return 'Пиксель-коины: ' + (data.pixelCoins || 0) + ' · прокрутка ' + MOD_PRICE; }
 function openModRoulette() {
-  document.getElementById('mrText').textContent = 'Цена прокрутки: ' + MOD_PRICE + ' пиксель-коинов';
+  document.getElementById('mrText').textContent = mrBalanceText();
   document.getElementById('mrSpin').disabled = false;
   document.getElementById('modRoulette').style.display = 'flex';
 }
@@ -2878,7 +2879,7 @@ function pickModWeighted() {
 }
 function spinModRoulette() {
   if (mrBusy) return;
-  if ((data.pixelCoins || 0) < MOD_PRICE) { showToast('Не хватает пиксель-коинов'); return; }
+  if ((data.pixelCoins || 0) < MOD_PRICE) { showToast('Не хватает пиксель-коинов: нужны награды из заданий'); return; }
   data.pixelCoins -= MOD_PRICE; saveData();
   mrBusy = true; document.getElementById('mrSpin').disabled = true;
   const res = pickModWeighted();
@@ -2893,6 +2894,7 @@ function spinModRoulette() {
     mrBusy = false;
     const b = document.getElementById('mrSpin');
     b.disabled = false; b.textContent = 'КРУТИТЬ ЕЩЁ (' + MOD_PRICE + ')';
+    setTimeout(() => { if (!mrBusy) txt.innerHTML = res.tier + ': ' + res.name + '<br>' + res.desc + '<br>' + mrBalanceText(); }, 1500);
     showToast('Получена модификация: ' + res.name);
   };
   tick();
